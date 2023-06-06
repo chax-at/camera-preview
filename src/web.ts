@@ -1,5 +1,6 @@
-import { WebPlugin } from '@capacitor/core';
-import {
+import { WebPlugin, registerWebPlugin } from '@capacitor/core';
+
+import type {
   CameraPreviewOptions,
   CameraPreviewPictureOptions,
   CameraPreviewPlugin,
@@ -98,15 +99,14 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   }
 
   async stop(): Promise<any> {
-    const video = <HTMLVideoElement>document.getElementById('video');
+    const video = document.getElementById('video') as HTMLVideoElement;
     if (video) {
       video.pause();
 
       const st: any = video.srcObject;
       const tracks = st.getTracks();
 
-      for (var i = 0; i < tracks.length; i++) {
-        var track = tracks[i];
+      for (const track of tracks) {
         track.stop();
       }
       video.remove();
@@ -115,7 +115,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
 
   async capture(options: CameraPreviewPictureOptions): Promise<any> {
     return new Promise((resolve, _) => {
-      const video = <HTMLVideoElement>document.getElementById('video');
+      const video = document.getElementById('video') as HTMLVideoElement;
       const canvas = document.createElement('canvas');
 
       // video.width = video.offsetWidth;
@@ -164,7 +164,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   }
 
   async setOpacity(_options: CameraOpacityOptions): Promise<any> {
-    const video = <HTMLVideoElement>document.getElementById('video');
+    const video = document.getElementById('video') as HTMLVideoElement;
     if (!!video && !!_options['opacity']) {
       video.style.setProperty('opacity', _options['opacity'].toString());
     }
@@ -175,5 +175,4 @@ const CameraPreview = new CameraPreviewWeb();
 
 export { CameraPreview };
 
-import { registerWebPlugin } from '@capacitor/core';
 registerWebPlugin(CameraPreview);

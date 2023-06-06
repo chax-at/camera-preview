@@ -42,7 +42,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     private String cameraStartCallbackId = "";
 
     // keep track of previously specified orientation to support locking orientation:
-    private int previousOrientationRequest = -1;
+    private int previousOrientationRequest = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 
     private CameraActivity fragment;
     private int containerViewId = 20;
