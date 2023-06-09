@@ -132,7 +132,21 @@ public class CameraActivity extends Fragment {
     }
 
     public void setPreviewDimensions(int x, int y, int width, int height) {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                setRect(x, y, width, height);
 
+                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
+
+                layoutParams.leftMargin = x;
+                layoutParams.topMargin = y;
+                layoutParams.width = width;
+                layoutParams.height = height;
+
+                frameContainerLayout.setLayoutParams(layoutParams);
+            }
+        });
     }
 
     private int degreesFromScreenOrientation(int screenRotation) {
