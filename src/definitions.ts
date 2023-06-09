@@ -58,6 +58,13 @@ export interface CameraOpacityOptions {
   opacity?: number;
 }
 
+export interface CameraPreviewPreviewDimensions {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CameraPreviewPlugin {
   start(options: CameraPreviewOptions): Promise<{}>;
   startRecordVideo(options: CameraPreviewOptions): Promise<{}>;
@@ -71,4 +78,5 @@ export interface CameraPreviewPlugin {
   setFlashMode(options: { flashMode: CameraPreviewFlashMode | string }): Promise<void>;
   flip(): Promise<void>;
   setOpacity(options: CameraOpacityOptions): Promise<{}>;
+  setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
 }
