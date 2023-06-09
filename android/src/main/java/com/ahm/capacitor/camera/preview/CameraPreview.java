@@ -396,11 +396,11 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
             position = "front";
         }
 
-        final Integer x = call.getInt("x", 0);
-        final Integer y = call.getInt("y", 0);
-        final Integer width = call.getInt("width", 0);
-        final Integer height = call.getInt("height", 0);
-        final Integer paddingBottom = call.getInt("paddingBottom", 0);
+        final Integer x = Math.round(call.getFloat("x", 0.0f));
+        final Integer y = Math.round(call.getFloat("y", 0.0f));
+        final Integer width = Math.round(call.getFloat("width", 0.0f));
+        final Integer height = Math.round(call.getFloat("height", 0.0f));
+        final Integer paddingBottom = Math.round(call.getFloat("paddingBottom", 0.0f));
         final Boolean toBack = call.getBoolean("toBack", false);
         final Boolean storeToFile = call.getBoolean("storeToFile", false);
         final Boolean enableOpacity = call.getBoolean("enableOpacity", false);
