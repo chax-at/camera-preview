@@ -131,6 +131,10 @@ public class CameraActivity extends Fragment {
         this.height = height;
     }
 
+    public void setPreviewDimensions(int x, int y, int width, int height) {
+
+    }
+
     private void createCameraPreview() {
         if (mPreview == null) {
             initialScreenRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();

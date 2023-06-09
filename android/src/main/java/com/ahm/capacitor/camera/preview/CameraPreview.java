@@ -95,6 +95,15 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
             return;
         }
 
+        Dimensions dimensions = getComputedDimensions(
+            Math.round(call.getFloat("x", 0.0f)),
+            Math.round(call.getFloat("y", 0.0f)),
+            Math.round(call.getFloat("width", 0.0f)),
+            Math.round(call.getFloat("height", 0.0f)),
+            Math.round(call.getFloat("paddingBottom", 0.0f))
+        );
+        fragment.setPreviewDimensions(dimensions.x, dimensions.y, dimensions.width, dimensions.height);
+
         call.resolve();
     }
 
