@@ -27,6 +27,8 @@ import com.getcapacitor.annotation.PermissionCallback;
 import java.io.File;
 import java.util.List;
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "CameraPreview", permissions = { @Permission(strings = { CAMERA }, alias = CameraPreview.CAMERA_PERMISSION_ALIAS) })
 public class CameraPreview extends Plugin implements CameraActivity.CameraPreviewListener {
@@ -153,6 +155,47 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         }
 
         return new Dimensions(computedX, computedY, computedWidth, computedHeight);
+    }
+
+    @PluginMethod
+    public void getSupportedPictureSizes(PluginCall call) {
+        if(this.hasCamera(call) == false){
+            return;
+        }
+
+        List<Camera.Size> supportedSizes;
+
+        Camera camera = fragment.getCamera();
+
+        supportedSizes = camera.getParameters().getSupportedPictureSizes();
+
+        if (supportedSizes != null) {
+            JSONArray sizes = new JSONArray();
+            for (int i = 0; i < supportedSizes.size(); i++) {
+                Camera.Size size = supportedSizes.get(i);
+
+                int h = size.height;
+                int w = size.width;
+
+                JSONObject jsonSize = new JSONObject();
+
+                try {
+                    jsonSize.put("height", new Integer(h));
+                    jsonSize.put("width", new Integer(w));
+                }
+                catch(JSONException e) {
+                    e.printStackTrace();
+                }
+
+                sizes.put(jsonSize);
+            }
+
+            JSObject jsObject = new JSObject();
+            jsObject.put("result", sizes);
+            call.resolve(jsObject);
+        } else {
+            call.reject("Camera Parameters access error");
+        }
     }
 
     @PluginMethod

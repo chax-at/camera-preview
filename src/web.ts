@@ -185,4 +185,10 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     throw new Error('Method not implemented.');
   }
 
+  getSupportedPictureSizes(): Promise<{
+    result: { width: number, height: number }[]
+  }> {
+    throw new Error('Method not implemented.');
+  }
+
 }
