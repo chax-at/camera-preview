@@ -155,6 +155,8 @@ public class CameraActivity extends Fragment {
 
                 RelativeLayout relLayout = view.findViewById(R.id.frame_camera_cont);
                 relLayout.setRotation(degrees - initialDegrees);
+
+                mPreview.setCameraDisplayOrientation();
             }
         });
     }
