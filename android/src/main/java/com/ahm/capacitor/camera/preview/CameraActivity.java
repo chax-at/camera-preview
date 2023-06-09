@@ -135,6 +135,23 @@ public class CameraActivity extends Fragment {
 
     }
 
+    private int degreesFromScreenOrientation(int screenRotation) {
+        switch (screenRotation) {
+            default:
+            case Surface.ROTATION_0:
+                return 0;
+
+            case Surface.ROTATION_90:
+                return 90;
+
+            case Surface.ROTATION_180:
+                return 180;
+
+            case Surface.ROTATION_270:
+                return 270;
+        }
+    }
+
     private void createCameraPreview() {
         if (mPreview == null) {
             initialScreenRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
@@ -896,21 +913,7 @@ public class CameraActivity extends Fragment {
         activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
         int currentScreenRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
 
-        int degrees = 0;
-        switch (currentScreenRotation) {
-            case Surface.ROTATION_0:
-                degrees = 0;
-                break;
-            case Surface.ROTATION_90:
-                degrees = 90;
-                break;
-            case Surface.ROTATION_180:
-                degrees = 180;
-                break;
-            case Surface.ROTATION_270:
-                degrees = 270;
-                break;
-        }
+        int degrees = degreesFromScreenOrientation(currentScreenRotation);
 
         int orientation;
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
