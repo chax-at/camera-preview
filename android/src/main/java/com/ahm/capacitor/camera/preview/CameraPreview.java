@@ -89,6 +89,16 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     }
 
     @PluginMethod
+    public void setPreviewDimensions(PluginCall call) {
+        if (this.hasCamera(call) == false) {
+            call.error("Camera is not running");
+            return;
+        }
+
+        call.resolve();
+    }
+
+    @PluginMethod
     public void capture(PluginCall call) {
         if (this.hasCamera(call) == false) {
             call.reject("Camera is not running");

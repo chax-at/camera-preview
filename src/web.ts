@@ -7,6 +7,7 @@ import type {
   CameraPreviewFlashMode,
   CameraSampleOptions,
   CameraOpacityOptions,
+  CameraPreviewPreviewDimensions,
 } from './definitions';
 
 export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
@@ -169,6 +170,11 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
       video.style.setProperty('opacity', _options['opacity'].toString());
     }
   }
+
+  setPreviewDimensions(_options: CameraPreviewPreviewDimensions): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
 }
 
 const CameraPreview = new CameraPreviewWeb();
