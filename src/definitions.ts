@@ -70,6 +70,9 @@ export interface CameraPreviewPlugin {
   stop(): Promise<{}>;
   capture(options: CameraPreviewPictureOptions): Promise<{ value: string }>;
   captureSample(options: CameraSampleOptions): Promise<{ value: string }>;
+  getSupportedPictureSizes(): Promise<{
+    result: { width: number, height: number }[]
+  }>;
   getSupportedFlashModes(): Promise<{
     result: CameraPreviewFlashMode[];
   }>;
