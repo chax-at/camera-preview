@@ -200,7 +200,7 @@ public class CameraActivity extends Fragment {
             mainLayout.addView(mPreview);
             mainLayout.setEnabled(false);
 
-            if (enableZoom) {
+            if (tapToFocus || enableZoom) {
                 this.setupTouchAndBackButton();
             }
         }
