@@ -108,8 +108,6 @@ public class CameraActivity extends Fragment {
     public int x;
     public int y;
 
-    private int initialScreenRotation = 0;
-
     public void setEventListener(CameraPreviewListener listener) {
         eventListener = listener;
     }
@@ -148,14 +146,6 @@ public class CameraActivity extends Fragment {
 
                 frameContainerLayout.setLayoutParams(layoutParams);
 
-                int currentScreenRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
-                int degrees = degreesFromScreenOrientation(currentScreenRotation);
-
-                int initialDegrees = degreesFromScreenOrientation(initialScreenRotation);
-
-                RelativeLayout relLayout = view.findViewById(R.id.frame_camera_cont);
-                relLayout.setRotation(degrees - initialDegrees);
-
                 mPreview.setCameraDisplayOrientation();
             }
         });
@@ -180,8 +170,6 @@ public class CameraActivity extends Fragment {
 
     private void createCameraPreview() {
         if (mPreview == null) {
-            initialScreenRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
-
             setDefaultCameraId();
 
             //set box position and size
