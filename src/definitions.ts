@@ -35,6 +35,7 @@ export interface CameraPreviewOptions {
   /** Defaults to false - Android only.  Set if camera preview will support pinch to zoom. */
   enableZoom?: boolean;
 }
+
 export interface CameraPreviewPictureOptions {
   /** The picture height, optional, default 0 (Device default) */
   height?: number;
@@ -51,7 +52,13 @@ export interface CameraSampleOptions {
   quality?: number;
 }
 
-export type CameraPreviewFlashMode = 'off' | 'on' | 'auto' | 'red-eye' | 'torch';
+export enum CameraPreviewFlashMode {
+  OFF = 'off',
+  ON = 'on',
+  AUTO = 'auto',
+  RED_EYE = 'red-eye',
+  TORCH = 'torch'
+}
 
 export interface CameraOpacityOptions {
   /** The percent opacity to set for camera view, default 1 */
@@ -76,7 +83,7 @@ export interface CameraPreviewPlugin {
   getSupportedFlashModes(): Promise<{
     result: CameraPreviewFlashMode[];
   }>;
-  setFlashMode(options: { flashMode: CameraPreviewFlashMode | string }): Promise<void>;
+  setFlashMode(options: { flashMode: CameraPreviewFlashMode }): Promise<void>;
   flip(): Promise<void>;
   setOpacity(options: CameraOpacityOptions): Promise<{}>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
