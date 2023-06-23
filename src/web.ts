@@ -7,7 +7,6 @@ import type {
   CameraPreviewFlashMode,
   CameraSampleOptions,
   CameraOpacityOptions,
-  CameraPreviewPreviewDimensions,
 } from './definitions';
 
 export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
