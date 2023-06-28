@@ -221,7 +221,7 @@ public class CameraPreview: CAPPlugin {
     @objc func getSupportedFlashModes(_ call: CAPPluginCall) {
         do {
             let supportedFlashModes = try self.cameraController.getSupportedFlashModes()
-            call.resolve(["result": supportedFlashModes])
+            call.resolve(["flashModes": supportedFlashModes])
         } catch {
             call.reject("failed to get supported flash modes")
         }
