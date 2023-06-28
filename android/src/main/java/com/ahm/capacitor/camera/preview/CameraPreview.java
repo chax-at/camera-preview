@@ -287,7 +287,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         }
 
         JSObject jsObject = new JSObject();
-        jsObject.put("result", jsonFlashModes);
+        jsObject.put("flashModes", jsonFlashModes);
         call.resolve(jsObject);
     }
 
