@@ -155,6 +155,12 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     throw new Error('getSupportedFlashModes not supported under the web platform');
   }
 
+  async getFlashMode(): Promise<{ flashMode: null }> {
+    return {
+      flashMode: null
+    };
+  }
+
   async setFlashMode(): Promise<void> {
     throw new Error('setFlashMode not supported under the web platform');
   }

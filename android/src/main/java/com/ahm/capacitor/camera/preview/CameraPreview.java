@@ -292,6 +292,24 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     }
 
     @PluginMethod
+    public void getFlashMode(PluginCall call) {
+        if(this.hasCamera(call) == false) {
+            call.reject("Camera is not running");
+            return;
+        }
+
+        Camera camera = fragment.getCamera();
+        Camera.Parameters params = camera.getParameters();
+
+        String flashMode = params.getFlashMode();
+
+        JSObject jsObject = new JSObject();
+        jsObject.put("flashMode", flashMode);
+
+        call.resolve(jsObject);
+    }
+
+    @PluginMethod
     public void setFlashMode(PluginCall call) {
         if (this.hasCamera(call) == false) {
             call.reject("Camera is not running");
