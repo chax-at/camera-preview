@@ -23,7 +23,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     });
   }
 
-  async start(options: CameraPreviewOptions): Promise<{}> {
+  async start(options: CameraPreviewOptions): Promise<Record<string,never>> {
     return new Promise(async (resolve, reject) => {
       await navigator.mediaDevices
         .getUserMedia({
@@ -65,7 +65,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
 
         parent.appendChild(videoElement);
 
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        if (navigator.mediaDevices?.getUserMedia) {
           const constraints: MediaStreamConstraints = {
             video: {
               width: { ideal: options.width },
@@ -98,11 +98,11 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     });
   }
 
-  async startRecordVideo(): Promise<{}> {
+  async startRecordVideo(): Promise<Record<string,never>> {
     throw this.unimplemented('Not implemented on web.');
   }
 
-  async stopRecordVideo(): Promise<{}> {
+  async stopRecordVideo(): Promise<Record<string,never>> {
     throw this.unimplemented('Not implemented on web.');
   }
 
@@ -122,7 +122,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   }
 
   async capture(options: CameraPreviewPictureOptions): Promise<any> {
-    return new Promise((resolve, _) => {
+    return new Promise(resolve => {
       const video = document.getElementById('video') as HTMLVideoElement;
       const canvas = document.createElement('canvas');
 

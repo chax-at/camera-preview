@@ -73,10 +73,10 @@ export interface CameraPreviewPreviewDimensions {
 }
 
 export interface CameraPreviewPlugin {
-  start(options: CameraPreviewOptions): Promise<{}>;
-  startRecordVideo(options: CameraPreviewOptions): Promise<{}>;
-  stop(): Promise<{}>;
-  stopRecordVideo(): Promise<{}>;
+  start(options: CameraPreviewOptions): Promise<Record<string,never>>;
+  startRecordVideo(options: CameraPreviewOptions): Promise<Record<string,never>>;
+  stop(): Promise<Record<string,never>>;
+  stopRecordVideo(): Promise<Record<string,never>>;
   capture(options: CameraPreviewPictureOptions): Promise<{ value: string }>;
   captureSample(options: CameraSampleOptions): Promise<{ value: string }>;
   getSupportedPictureSizes(): Promise<{
@@ -88,6 +88,6 @@ export interface CameraPreviewPlugin {
   getFlashMode(): Promise<{ flashMode: CameraPreviewFlashMode|null }>;
   setFlashMode(options: { flashMode: CameraPreviewFlashMode }): Promise<void>;
   flip(): Promise<void>;
-  setOpacity(options: CameraOpacityOptions): Promise<{}>;
+  setOpacity(options: CameraOpacityOptions): Promise<Record<string,never>>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
 }
