@@ -142,7 +142,10 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             "deg from natural"
         );
         Log.d(TAG, "need to rotate preview " + displayOrientation + "deg");
-        mCamera.setDisplayOrientation(displayOrientation);
+
+        if(mCamera != null) {
+            mCamera.setDisplayOrientation(displayOrientation);
+        }
     }
 
     public void switchCamera(Camera camera, int cameraId) {
