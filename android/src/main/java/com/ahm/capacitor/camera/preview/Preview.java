@@ -62,8 +62,9 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     public void setCamera(Camera camera, int cameraId) {
+        mCamera = camera;
+
         if (camera != null) {
-            mCamera = camera;
             this.cameraId = cameraId;
             mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
             setCameraDisplayOrientation();
@@ -142,7 +143,10 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             "deg from natural"
         );
         Log.d(TAG, "need to rotate preview " + displayOrientation + "deg");
-        mCamera.setDisplayOrientation(displayOrientation);
+
+        if(mCamera != null) {
+            mCamera.setDisplayOrientation(displayOrientation);
+        }
     }
 
     public void switchCamera(Camera camera, int cameraId) {
