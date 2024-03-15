@@ -227,6 +227,11 @@ public class CameraPreview: CAPPlugin {
         }
     }
 
+    @objc func getFlashMode(_ call: CAPPluginCall) {
+        let flashMode = self.cameraController.getTorchMode();
+        call.resolve(["flashMode": flashMode]);
+    }
+
     @objc func setFlashMode(_ call: CAPPluginCall) {
         guard let flashMode = call.getString("flashMode") else {
             call.reject("failed to set flash mode. required parameter flashMode is missing")
@@ -287,5 +292,15 @@ public class CameraPreview: CAPPlugin {
 
         }
     }
+    
+    @objc func getSupportedPictureSizes(_ call: CAPPluginCall) {
+        // TODO
+        call.resolve();
+    }
 
+    @objc func setPreviewDimensions(_ call: CAPPluginCall) {
+        // TODO
+        call.resolve();
+    }
+    
 }

@@ -324,6 +324,10 @@ extension CameraController {
 
     }
 
+    func getTorchMode() -> AVCaptureDevice.FlashMode {
+        return self.flashMode;
+    }
+
     func setFlashMode(flashMode: AVCaptureDevice.FlashMode) throws {
         var currentCamera: AVCaptureDevice?
         switch currentCameraPosition {
