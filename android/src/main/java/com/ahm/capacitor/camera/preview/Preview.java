@@ -273,12 +273,17 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         }
     }
 
-    private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
-        final double ASPECT_TOLERANCE = 0.1;
+    private double computeTargetRatio(int w, int h) {
         double targetRatio = (double) w / h;
         if (displayOrientation == 90 || displayOrientation == 270) {
             targetRatio = (double) h / w;
         }
+        return targetRatio;
+    }
+
+    private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
+        final double ASPECT_TOLERANCE = 0.1;
+        double targetRatio = computeTargetRatio(w, h);
 
         if (sizes == null) {
             return null;
@@ -314,20 +319,85 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         return optimalSize;
     }
 
-    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-        if (mCamera != null) {
-            try {
-                // Now that the size is known, set up the camera parameters and begin
-                // the preview.
-                mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-                if (mSupportedPreviewSizes != null) {
-                    mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, w, h);
+    private boolean tryFindAlternativePreviewSizes(int w, int h, Camera.Size previousSize)
+    {
+        final double ASPECT_TOLERANCE = 0.1;
+        double targetRatio = computeTargetRatio(w, h);
+
+        if (mSupportedPreviewSizes == null) {
+            return false;
+        }
+
+        Camera.Size optimalSize = null;
+        double minDiff = Double.MAX_VALUE;
+
+        int targetHeight = h;
+
+        boolean valueAlreadyConsidered = true;
+        // Try to find an size match aspect ratio and size
+        for (Camera.Size size : mSupportedPreviewSizes) {
+            if(valueAlreadyConsidered) {
+                if(size.width == previousSize.width && size.height == previousSize.height) {
+                    valueAlreadyConsidered = false;
                 }
-                startCamera();
-            } catch (Exception exception) {
-                Log.e(TAG, "Exception caused by surfaceChanged()", exception);
+                continue;
+            }
+
+            double ratio = (double) size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
+            if (Math.abs(size.height - targetHeight) < minDiff) {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
             }
         }
+
+        if(optimalSize == null) {
+            return false;
+        }
+
+        Log.d(TAG, "optimal preview size: w: " + optimalSize.width + " h: " + optimalSize.height);
+        mPreviewSize = optimalSize;
+        return true;
+    }
+
+    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        Camera.Parameters parameters = mCamera.getParameters();
+        mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+        if (mSupportedPreviewSizes == null) {
+            restartCamera();
+            return;
+        }
+
+        mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, w, h);
+        boolean success = trySetPreviewSize(parameters, mPreviewSize);
+
+        while(!success) {
+            if(tryFindAlternativePreviewSizes(w, h, mPreviewSize)) {
+                success = trySetPreviewSize(parameters, mPreviewSize);
+            } else {
+                restartCamera();
+                return;
+            }
+        }
+
+        mCamera.startPreview();
+    }
+
+    private void restartCamera() {
+        Log.e(TAG, "no fitting preview size found - restarting camera");
+        fragment.onPause();
+        fragment.onResume();
+    }
+
+    private boolean trySetPreviewSize(Camera.Parameters parameters, Camera.Size size) {
+        parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+        requestLayout();
+        try {
+            mCamera.setParameters(parameters);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        return true;
     }
 
     private void startCamera() {
