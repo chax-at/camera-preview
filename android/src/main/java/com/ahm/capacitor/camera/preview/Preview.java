@@ -384,7 +384,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     private void restartCamera() {
-        Log.e(TAG, "no fitting preview size found - restarting camera");
+        Log.w(TAG, "no fitting preview size found - restarting camera");
         fragment.onPause();
         fragment.onResume();
     }
