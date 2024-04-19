@@ -345,7 +345,6 @@ public class CameraActivity extends Fragment {
                         int zoomDifference = 0;
                         int zoomFactor = 10;
                         int maximumZoomStep = 10;
-                        int minimumZoomStep = -10;
 
                         if (newDist > mDist) {
                             //zoom in;
@@ -353,7 +352,7 @@ public class CameraActivity extends Fragment {
                             zoom = Math.min(maxZoom, zoom + zoomDifference);
                         } else if (newDist < mDist) {
                             //zoom out
-                            zoomDifference = Math.max(Math.round(distDifference / zoomFactor), minimumZoomStep);
+                            zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
                             zoom = Math.max(0, zoom + zoomDifference);
                         }
                         mDist = newDist;
