@@ -33,6 +33,8 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     private boolean enableOpacity = false;
     private float opacity = 1F;
 
+    private CameraActivity fragment;
+
     Preview(Context context) {
         this(context, false);
     }
@@ -81,6 +83,10 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             }
             mCamera.setParameters(params);
         }
+    }
+
+    public void setCameraActivity(CameraActivity cameraActivity) {
+        fragment = cameraActivity;
     }
 
     public int getDisplayOrientation() {
