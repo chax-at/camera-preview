@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureView.SurfaceTextureListener {
 
@@ -389,12 +390,13 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     private boolean trySetPreviewSize(Camera.Parameters parameters, Camera.Size size) {
-        parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+        parameters.setPreviewSize(size.width, size.height);
         requestLayout();
         try {
             mCamera.setParameters(parameters);
         } catch (RuntimeException e) {
-            return false;
+            Log.w(TAG, "trySetPreviewSize failed with: " + e);
+            return e.getMessage() == null || !e.getMessage().contains("setParameters failed");
         }
         return true;
     }
