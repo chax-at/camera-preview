@@ -218,6 +218,9 @@ public class CameraActivity extends Fragment {
                                     int action = event.getAction();
                                     int eventCount = event.getPointerCount();
                                     Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
+                                    if (action == MotionEvent.ACTION_DOWN) {
+                                        mDist = 0;
+                                    }
                                     if (eventCount > 1) {
                                         // handle multi-touch events
                                         Camera.Parameters params = mCamera.getParameters();
@@ -225,9 +228,6 @@ public class CameraActivity extends Fragment {
                                             handleZoom(event, params);
                                         }
                                     } else {
-                                        if (action == MotionEvent.ACTION_DOWN) {
-                                            mDist = 0;
-                                        }
                                         if (action != MotionEvent.ACTION_MOVE && isSingleTapTouch) {
                                             if (tapToTakePicture && tapToFocus) {
                                                 setFocusArea(
