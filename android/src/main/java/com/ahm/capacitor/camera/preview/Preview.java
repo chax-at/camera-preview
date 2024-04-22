@@ -390,13 +390,20 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     private boolean trySetPreviewSize(Camera.Parameters parameters, Camera.Size size) {
+        Camera.Size rollbackValue = parameters.getPreviewSize();
         parameters.setPreviewSize(size.width, size.height);
         requestLayout();
         try {
             mCamera.setParameters(parameters);
         } catch (RuntimeException e) {
             Log.w(TAG, "trySetPreviewSize failed with: " + e);
-            return e.getMessage() == null || !e.getMessage().contains("setParameters failed");
+            if(e.getMessage() != null && e.getMessage().contains("setParameters failed"))
+            {
+                parameters.setPreviewSize(rollbackValue.width, rollbackValue.height);
+                requestLayout();
+                return false;
+            }
+            return true;
         }
         return true;
     }
