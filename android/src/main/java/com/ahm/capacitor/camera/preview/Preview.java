@@ -33,13 +33,9 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     private boolean enableOpacity = false;
     private float opacity = 1F;
 
-    private CameraActivity fragment;
+    private final CameraActivity fragment;
 
-    Preview(Context context) {
-        this(context, false);
-    }
-
-    Preview(Context context, boolean enableOpacity) {
+    Preview(Context context, boolean enableOpacity, CameraActivity cameraActivity) {
         super(context);
         this.enableOpacity = enableOpacity;
         if (!enableOpacity) {
@@ -61,6 +57,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             addView(mTextureView);
             requestLayout();
         }
+        fragment = cameraActivity;
     }
 
     public void setCamera(Camera camera, int cameraId) {
@@ -83,10 +80,6 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             }
             mCamera.setParameters(params);
         }
-    }
-
-    public void setCameraActivity(CameraActivity cameraActivity) {
-        fragment = cameraActivity;
     }
 
     public int getDisplayOrientation() {
