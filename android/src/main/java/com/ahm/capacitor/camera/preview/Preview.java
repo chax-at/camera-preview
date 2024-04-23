@@ -303,14 +303,6 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         return (Math.abs(ratio - targetRatio) < aspectTolerance);
     }
 
-    private double computeTargetRatio(int w, int h) {
-        return (displayOrientation == 0 || displayOrientation == 180) ? (double) w / h : (double) h / w;
-    }
-
-    private double computeTargetHeight(int w, int h) {
-        return (displayOrientation == 0 || displayOrientation == 180) ? h : w;
-    }
-
     private boolean trySetPreviewSize(Camera.Size size) {
         Camera.Parameters parameters = mCamera.getParameters();
         Camera.Size rollbackValue = parameters.getPreviewSize();
@@ -407,6 +399,14 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             }
             return Double.compare(ratioDiff1, ratioDiff2);
         });
+    }
+
+    private double computeTargetRatio(int w, int h) {
+        return (displayOrientation == 0 || displayOrientation == 180) ? (double) w / h : (double) h / w;
+    }
+
+    private double computeTargetHeight(int w, int h) {
+        return (displayOrientation == 0 || displayOrientation == 180) ? h : w;
     }
 
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
