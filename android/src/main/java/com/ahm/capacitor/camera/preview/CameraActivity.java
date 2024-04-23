@@ -218,12 +218,13 @@ public class CameraActivity extends Fragment {
                                     int action = event.getAction();
                                     int eventCount = event.getPointerCount();
                                     Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
+                                    if (action == MotionEvent.ACTION_DOWN) {
+                                        mDist = 0;
+                                    }
                                     if (eventCount > 1) {
                                         // handle multi-touch events
                                         Camera.Parameters params = mCamera.getParameters();
-                                        if (action == MotionEvent.ACTION_POINTER_DOWN) {
-                                            mDist = getFingerSpacing(event);
-                                        } else if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
+                                        if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
                                             handleZoom(event, params);
                                         }
                                     } else {
@@ -324,22 +325,39 @@ public class CameraActivity extends Fragment {
                     private float mDist = 0F;
 
                     private void handleZoom(MotionEvent event, Camera.Parameters params) {
-                        if (mCamera != null) {
-                            mCamera.cancelAutoFocus();
-                            int maxZoom = params.getMaxZoom();
-                            int zoom = params.getZoom();
-                            float newDist = getFingerSpacing(event);
-                            if (newDist > mDist) {
-                                //zoom in
-                                if (zoom < maxZoom) zoom++;
-                            } else if (newDist < mDist) {
-                                //zoom out
-                                if (zoom > 0) zoom--;
-                            }
-                            mDist = newDist;
-                            params.setZoom(zoom);
-                            mCamera.setParameters(params);
+                        if (mCamera == null) {
+                            return;
                         }
+
+                        mCamera.cancelAutoFocus();
+
+                        int maxZoom = params.getMaxZoom();
+                        int zoom = params.getZoom();
+                        float newDist = getFingerSpacing(event);
+                        float distDifference = newDist - mDist;
+
+                        // avoid zoom jumps
+                        if(mDist == 0) {
+                            mDist = newDist;
+                            return;
+                        }
+
+                        int zoomDifference = 0;
+                        int zoomFactor = 10;
+                        int maximumZoomStep = 10;
+
+                        if (newDist > mDist) {
+                            //zoom in;
+                            zoomDifference = Math.min(Math.round(distDifference / zoomFactor), maximumZoomStep);
+                            zoom = Math.min(maxZoom, zoom + zoomDifference);
+                        } else if (newDist < mDist) {
+                            //zoom out
+                            zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
+                            zoom = Math.max(0, zoom + zoomDifference);
+                        }
+                        mDist = newDist;
+                        params.setZoom(zoom);
+                        mCamera.setParameters(params);
                     }
                 }
             );
