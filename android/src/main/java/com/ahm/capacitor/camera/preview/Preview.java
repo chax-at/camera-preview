@@ -313,16 +313,18 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             parameters.setPreviewSize(size.width, size.height);
             requestLayout();
             mCamera.setParameters(parameters);
-        } catch (RuntimeException e) {
-            Log.w(TAG, "trySetPreviewSize failed with: " + e);
-            if(e.getMessage() != null && e.getMessage().contains("setParameters failed"))
-            {
-                mPreviewSize = rollbackValue;
-                parameters.setPreviewSize(rollbackValue.width, rollbackValue.height);
-                requestLayout();
+        } catch (RuntimeException exception) {
+            Log.w(TAG, "trySetPreviewSize failed with: " + exception);
+            mPreviewSize = rollbackValue;
+            parameters.setPreviewSize(rollbackValue.width, rollbackValue.height);
+            requestLayout();
+
+            if(exception.getMessage() != null && exception.getMessage().contains("setParameters failed")) {
                 return false;
             }
-            return true;
+            else {
+                Log.e(TAG, "Exception caused by surfaceChanged()", exception);
+            }
         }
         return true;
     }
