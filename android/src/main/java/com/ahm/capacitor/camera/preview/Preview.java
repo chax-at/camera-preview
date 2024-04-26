@@ -25,7 +25,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     SurfaceHolder mHolder;
     SurfaceTexture mSurface;
     Camera.Size mPreviewSize;
-    List<Camera.Size> mSupportedPreviewSizes;
+    List<Camera.Size> mSupportedPreviewSizes = new ArrayList<>();
     Camera mCamera;
     int cameraId;
     int displayOrientation;
@@ -191,9 +191,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
         setMeasuredDimension(width, height);
 
-        if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
-        }
+        mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
     }
 
     @Override
@@ -276,10 +274,6 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-        if (mSupportedPreviewSizes == null) {
-            restartCamera();
-            return;
-        }
 
         List<Camera.Size> sizes = new ArrayList<>(mSupportedPreviewSizes);
         sortSizesToMatchAspectRatio(w, h, sizes);
@@ -351,9 +345,8 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         // to draw.
         try {
             mSurface = surface;
-            if (mSupportedPreviewSizes != null) {
-                mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
-            }
+            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+
             if (mCamera != null) {
                 mTextureView.setAlpha(opacity);
                 mCamera.setPreviewTexture(surface);
@@ -365,16 +358,11 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
-        if (sizes == null) {
-            return null;
-        }
-
         List<Camera.Size> sorted = new ArrayList<Camera.Size>(sizes);
         sortSizesToMatchAspectRatio(w, h, sorted);
 
-        if(sorted.isEmpty() || sorted.get(0) == null) {
+        if(sorted.isEmpty())
             return null;
-        }
 
         Camera.Size optimalSize = sorted.get(0);
         Log.d(TAG, "optimal preview size: w: " + optimalSize.width + " h: " + optimalSize.height);
@@ -382,6 +370,9 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     }
 
     public void sortSizesToMatchAspectRatio(int w, int h, List<Camera.Size> sizes) {
+        if(sizes.size() <= 1) {
+            return;
+        }
 
         double targetRatio = computeTargetRatio(w, h);
         double targetHeight = computeTargetHeight(w, h);
