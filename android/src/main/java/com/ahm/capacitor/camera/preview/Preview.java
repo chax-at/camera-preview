@@ -12,7 +12,9 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.RelativeLayout;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureView.SurfaceTextureListener {
 
@@ -23,7 +25,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     SurfaceHolder mHolder;
     SurfaceTexture mSurface;
     Camera.Size mPreviewSize;
-    List<Camera.Size> mSupportedPreviewSizes;
+    List<Camera.Size> mSupportedPreviewSizes = new ArrayList<>();
     Camera mCamera;
     int cameraId;
     int displayOrientation;
@@ -33,11 +35,9 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
     private boolean enableOpacity = false;
     private float opacity = 1F;
 
-    Preview(Context context) {
-        this(context, false);
-    }
+    private final CameraActivity fragment;
 
-    Preview(Context context, boolean enableOpacity) {
+    Preview(Context context, boolean enableOpacity, CameraActivity cameraActivity) {
         super(context);
         this.enableOpacity = enableOpacity;
         if (!enableOpacity) {
@@ -59,6 +59,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
             addView(mTextureView);
             requestLayout();
         }
+        fragment = cameraActivity;
     }
 
     public void setCamera(Camera camera, int cameraId) {
@@ -136,11 +137,11 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
 
         Log.d(TAG, "screen is rotated " + degrees + "deg from natural");
         Log.d(
-            TAG,
-            (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT ? "front" : "back") +
-            " camera is oriented -" +
-            info.orientation +
-            "deg from natural"
+                TAG,
+                (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT ? "front" : "back") +
+                        " camera is oriented -" +
+                        info.orientation +
+                        "deg from natural"
         );
         Log.d(TAG, "need to rotate preview " + displayOrientation + "deg");
 
@@ -190,9 +191,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
         setMeasuredDimension(width, height);
 
-        if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
-        }
+        mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
     }
 
     @Override
@@ -214,7 +213,7 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
                     previewWidth = mPreviewSize.height;
                     previewHeight = mPreviewSize.width;
                 }
-                //        LOG.d(TAG, "previewWidth:" + previewWidth + " previewHeight:" + previewHeight);
+                //LOG.d(TAG, "previewWidth:" + previewWidth + " previewHeight:" + previewHeight);
             }
 
             int nW;
@@ -273,61 +272,61 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         }
     }
 
-    private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
-        final double ASPECT_TOLERANCE = 0.1;
-        double targetRatio = (double) w / h;
-        if (displayOrientation == 90 || displayOrientation == 270) {
-            targetRatio = (double) h / w;
-        }
+    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 
-        if (sizes == null) {
-            return null;
-        }
+        List<Camera.Size> sizes = new ArrayList<>(mSupportedPreviewSizes);
+        sortSizesToMatchAspectRatio(w, h, sizes);
 
-        Camera.Size optimalSize = null;
-        double minDiff = Double.MAX_VALUE;
+        for(Camera.Size size : sizes) {
+            if(!isSizeMatchingAspectRatio(w, h, size, 0.1)) break;
 
-        int targetHeight = h;
-
-        // Try to find an size match aspect ratio and size
-        for (Camera.Size size : sizes) {
-            double ratio = (double) size.width / size.height;
-            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
-            if (Math.abs(size.height - targetHeight) < minDiff) {
-                optimalSize = size;
-                minDiff = Math.abs(size.height - targetHeight);
+            if (trySetPreviewSize(size)) {
+                mCamera.startPreview();
+                return;
             }
         }
 
-        // Cannot find the one match the aspect ratio, ignore the requirement
-        if (optimalSize == null) {
-            minDiff = Double.MAX_VALUE;
-            for (Camera.Size size : sizes) {
-                if (Math.abs(size.height - targetHeight) < minDiff) {
-                    optimalSize = size;
-                    minDiff = Math.abs(size.height - targetHeight);
-                }
-            }
-        }
-
-        Log.d(TAG, "optimal preview size: w: " + optimalSize.width + " h: " + optimalSize.height);
-        return optimalSize;
+        restartCamera();
     }
 
-    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-        if (mCamera != null) {
-            try {
-                // Now that the size is known, set up the camera parameters and begin
-                // the preview.
-                mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-                if (mSupportedPreviewSizes != null) {
-                    mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, w, h);
-                }
-                startCamera();
-            } catch (Exception exception) {
+    private boolean isSizeMatchingAspectRatio(int w, int h, Camera.Size size, double aspectTolerance)
+    {
+        double targetRatio = computeTargetRatio(w, h);
+        double ratio = (double) size.width / size.height;
+        return (Math.abs(ratio - targetRatio) < aspectTolerance);
+    }
+
+    private boolean trySetPreviewSize(Camera.Size size) {
+        Camera.Parameters parameters = mCamera.getParameters();
+        Camera.Size rollbackValue = parameters.getPreviewSize();
+        Log.d(TAG, "trySetPreviewSize : " + size.width + "   " + size.height);
+
+        try {
+            mPreviewSize = size;
+            parameters.setPreviewSize(size.width, size.height);
+            requestLayout();
+            mCamera.setParameters(parameters);
+        } catch (RuntimeException exception) {
+            Log.w(TAG, "trySetPreviewSize failed with: " + exception);
+            mPreviewSize = rollbackValue;
+            parameters.setPreviewSize(rollbackValue.width, rollbackValue.height);
+            requestLayout();
+
+            if(exception.getMessage() != null && exception.getMessage().contains("setParameters failed")) {
+                return false;
+            }
+            else {
                 Log.e(TAG, "Exception caused by surfaceChanged()", exception);
             }
         }
+        return true;
+    }
+
+    private void restartCamera() {
+        Log.w(TAG, "no fitting preview size found - restarting camera");
+        fragment.onPause();
+        fragment.onResume();
     }
 
     private void startCamera() {
@@ -346,9 +345,8 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         // to draw.
         try {
             mSurface = surface;
-            if (mSupportedPreviewSizes != null) {
-                mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
-            }
+            mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+
             if (mCamera != null) {
                 mTextureView.setAlpha(opacity);
                 mCamera.setPreviewTexture(surface);
@@ -357,6 +355,51 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback, TextureV
         } catch (Exception exception) {
             Log.e(TAG, "Exception caused by onSurfaceTextureAvailable()", exception);
         }
+    }
+
+    private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
+        List<Camera.Size> sorted = new ArrayList<Camera.Size>(sizes);
+        sortSizesToMatchAspectRatio(w, h, sorted);
+
+        if(sorted.isEmpty())
+            return null;
+
+        Camera.Size optimalSize = sorted.get(0);
+        Log.d(TAG, "optimal preview size: w: " + optimalSize.width + " h: " + optimalSize.height);
+        return optimalSize;
+    }
+
+    public void sortSizesToMatchAspectRatio(int w, int h, List<Camera.Size> sizes) {
+        if(sizes.size() <= 1) {
+            return;
+        }
+
+        double targetRatio = computeTargetRatio(w, h);
+        double targetHeight = computeTargetHeight(w, h);
+        double ratioDiffThresholdToConsiderHeight = 0.1;
+
+        Collections.sort(sizes, (size1, size2) -> {
+            double ratio1 = (double) size1.width / size1.height;
+            double ratio2 = (double) size2.width / size2.height;
+            double ratioDiff1 = Math.abs(ratio1 - targetRatio);
+            double ratioDiff2 = Math.abs(ratio2 - targetRatio);
+
+            // for preview sizes with very similar aspect ratio: compare target height instead
+            if(Math.abs(ratioDiff1 - ratioDiff2) < ratioDiffThresholdToConsiderHeight) {
+                double heightDiff1 = Math.abs(size1.height - targetHeight);
+                double heightDiff2 = Math.abs(size2.height - targetHeight);
+                return Double.compare(heightDiff1, heightDiff2);
+            }
+            return Double.compare(ratioDiff1, ratioDiff2);
+        });
+    }
+
+    private double computeTargetRatio(int w, int h) {
+        return (displayOrientation == 0 || displayOrientation == 180) ? (double) w / h : (double) h / w;
+    }
+
+    private double computeTargetHeight(int w, int h) {
+        return (displayOrientation == 0 || displayOrientation == 180) ? h : w;
     }
 
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
