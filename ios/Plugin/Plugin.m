@@ -16,5 +16,4 @@ CAP_PLUGIN(CameraPreview, "CameraPreview",
            CAP_PLUGIN_METHOD(getSupportedPictureSizes, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getFlashMode, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(setPreviewDimensions, CAPPluginReturnPromise);
-           
 )

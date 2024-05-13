@@ -280,20 +280,7 @@ extension CameraController {
     }
 
     func getSupportedFlashModes() throws -> [String] {
-        var currentCamera: AVCaptureDevice?
-        switch currentCameraPosition {
-        case .front:
-            currentCamera = self.frontCamera!
-        case .rear:
-            currentCamera = self.rearCamera!
-        default: break
-        }
-
-        guard
-            let device = currentCamera
-        else {
-            throw CameraControllerError.noCamerasAvailable
-        }
+        let device = try getCurrentCameraDevice()
 
         var supportedFlashModesAsStrings: [String] = []
         if device.hasFlash {
@@ -324,23 +311,8 @@ extension CameraController {
 
     }
 
-    func getTorchMode() -> AVCaptureDevice.FlashMode {
-        return self.flashMode;
-    }
-
     func setFlashMode(flashMode: AVCaptureDevice.FlashMode) throws {
-        var currentCamera: AVCaptureDevice?
-        switch currentCameraPosition {
-        case .front:
-            currentCamera = self.frontCamera!
-        case .rear:
-            currentCamera = self.rearCamera!
-        default: break
-        }
-
-        guard let device = currentCamera else {
-            throw CameraControllerError.noCamerasAvailable
-        }
+        let device = try getCurrentCameraDevice()
 
         guard let supportedFlashModes: [AVCaptureDevice.FlashMode] = self.photoOutput?.supportedFlashModes else {
             throw CameraControllerError.invalidOperation
@@ -365,19 +337,25 @@ extension CameraController {
             throw CameraControllerError.invalidOperation
         }
     }
+    
+    func getFlashMode() -> AVCaptureDevice.FlashMode {
+        return self.flashMode
+    }
+    
+    func isTorchSupported() throws -> Bool {
+        let device = try getCurrentCameraDevice()
+        return device.hasTorch
+    }
+    
+    func getTorchMode() throws -> AVCaptureDevice.TorchMode {
+        let device = try getCurrentCameraDevice()
+        return device.torchMode
+    }
 
     func setTorchMode() throws {
-        var currentCamera: AVCaptureDevice?
-        switch currentCameraPosition {
-        case .front:
-            currentCamera = self.frontCamera!
-        case .rear:
-            currentCamera = self.rearCamera!
-        default: break
-        }
-
+        let device = try getCurrentCameraDevice()
+        
         guard
-            let device = currentCamera,
             device.hasTorch,
             device.isTorchAvailable
         else {
@@ -398,6 +376,45 @@ extension CameraController {
             throw CameraControllerError.invalidOperation
         }
 
+    }
+    
+    func getSupportedPictureSizes() throws -> String? {
+        let device = try getCurrentCameraDevice()
+    
+        var dimensionsArray: [Dimensions] = []
+        for format in device.formats {
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            
+            dimensionsArray.append(Dimensions(width: Int(dimensions.width), height: Int(dimensions.height)))
+        }
+        
+        let jsonString: String? = convertDimensionsToJSON(dimensions: dimensionsArray)
+        return jsonString
+    }
+        
+    struct Dimensions: Codable {
+        var width: Int;
+        var height: Int;
+    }
+    
+    func convertDimensionsToJSON(dimensions: [Dimensions]) -> String? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+
+        do {
+            let jsonData = try encoder.encode(dimensions)
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                return jsonString
+            }
+        } catch {
+            print("Failed to encode dimensions: \(error)")
+        }
+        
+        return nil;
+    }
+
+    func setPreviewDimensions(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) throws {
+        self.previewLayer?.frame = CGRect(x: x, y: y, width: width, height: height)
     }
 
     func captureVideo(completion: @escaping (URL?, Error?) -> Void) {
@@ -423,6 +440,25 @@ extension CameraController {
             return
         }
         // self.videoOutput?.stopRecording()
+    }
+    
+    func getCurrentCameraDevice() throws -> AVCaptureDevice {
+        var currentCamera: AVCaptureDevice?
+        switch currentCameraPosition {
+        case .front:
+            currentCamera = self.frontCamera!
+        case .rear:
+            currentCamera = self.rearCamera!
+        default: break
+        }
+
+        guard
+            let device = currentCamera
+        else {
+            throw CameraControllerError.noCamerasAvailable
+        }
+        
+        return device
     }
 }
 
