@@ -226,12 +226,47 @@ public class CameraPreview: CAPPlugin {
             call.reject("failed to get supported flash modes")
         }
     }
+    
+    @objc func getFlashMode(_ call: CAPPluginCall) {
+        var flashModeValue: String = ""
+        do {
+            if(try self.cameraController.isTorchSupported()) {
+                let torchMode = try self.cameraController.getTorchMode()
+                if torchMode == AVCaptureDevice.TorchMode.on || torchMode == AVCaptureDevice.TorchMode.auto {
+                    flashModeValue = "torch"
+                    call.resolve(["flashMode": flashModeValue]);
+                }
+            }
+        } catch {
+            call.reject("failed to get torch mode")
+        }
+        
+        let flashMode = self.cameraController.getFlashMode();
+        
+        switch flashMode {
+        case AVCaptureDevice.FlashMode.off:
+            flashModeValue = "off"
+        case AVCaptureDevice.FlashMode.on:
+            flashModeValue = "on"
+        case AVCaptureDevice.FlashMode.auto:
+            flashModeValue = "auto"
+        default: break
+        }
+        
+        guard !flashModeValue.isEmpty else {
+            call.reject("failed to get flash mode.")
+            return
+        }
+        
+        call.resolve(["flashMode": flashModeValue]);
+    }
 
     @objc func setFlashMode(_ call: CAPPluginCall) {
         guard let flashMode = call.getString("flashMode") else {
             call.reject("failed to set flash mode. required parameter flashMode is missing")
             return
         }
+        
         do {
             var flashModeAsEnum: AVCaptureDevice.FlashMode?
             switch flashMode {
@@ -243,6 +278,7 @@ public class CameraPreview: CAPPlugin {
                 flashModeAsEnum = AVCaptureDevice.FlashMode.auto
             default: break
             }
+            
             if flashModeAsEnum != nil {
                 try self.cameraController.setFlashMode(flashMode: flashModeAsEnum!)
             } else if flashMode == "torch" {
@@ -254,6 +290,36 @@ public class CameraPreview: CAPPlugin {
             call.resolve()
         } catch {
             call.reject("failed to set flash mode")
+        }
+    }
+    
+    @objc func getSupportedPictureSizes(_ call: CAPPluginCall) {
+        do {
+            let supportedPictureSizes = try self.cameraController.getSupportedPictureSizes()
+            if supportedPictureSizes == nil {
+                call.reject("failed to get supportet picture sizes")
+            }
+            call.resolve(["result": supportedPictureSizes])
+        } catch {
+            call.reject("failed to get supportet picture sizes")
+        }
+    }
+
+    @objc func setPreviewDimensions(_ call: CAPPluginCall) {
+        let x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!)/UIScreen.main.scale : 0
+        let y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!)/UIScreen.main.scale : 0
+        let width = call.getInt("width") != nil ? CGFloat(call.getInt("width")!) : UIScreen.main.bounds.size.width
+        let height = call.getInt("height") != nil ? CGFloat(call.getInt("height")!) : UIScreen.main.bounds.size.height
+        do {
+            try self.cameraController.setPreviewDimensions(x: x, y: y, width: width, height: height)
+            self.x = x
+            self.y = y
+            self.width = width
+            self.height = height
+            self.paddingBottom = call.getInt("paddingBottom") != nil ? CGFloat(call.getInt("paddingBottom")!) : 0
+            call.resolve()
+        } catch {
+            call.reject("failed to set preview dimensions")
         }
     }
 
