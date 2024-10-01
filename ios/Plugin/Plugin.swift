@@ -354,4 +354,14 @@ public class CameraPreview: CAPPlugin {
         }
     }
 
+    @objc func subscribeToFocusSet(_ call: CAPPluginCall) {
+        // to be implemented if necessary
+        call.resolve();
+    }
+
+  @objc func unsubscribeToFocusSet(_ call: CAPPluginCall) {
+        // to be implemented if necessary
+        call.resolve();
+    }
+
 }

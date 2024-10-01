@@ -42,6 +42,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     private String snapshotCallbackId = "";
     private String recordCallbackId = "";
     private String cameraStartCallbackId = "";
+    private String onFocusSetCallbackId = "";
 
     // keep track of previously specified orientation to support locking orientation:
     private int previousOrientationRequest = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
@@ -386,6 +387,23 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         // call.resolve();
     }
 
+    @PluginMethod(returnType = PluginMethod.RETURN_CALLBACK)
+    public void subscribeToFocusSet(PluginCall call) {
+        call.setKeepAlive(true);
+        this.onFocusSetCallbackId = call.getCallbackId();
+    }
+
+    @PluginMethod
+    public void unsubscribeToFocusSet(PluginCall call) {
+        if(this.onFocusSetCallbackId == "") {
+            call.reject("CallbackId is not valid.");
+            return;
+        }
+
+        bridge.releaseCall(this.onFocusSetCallbackId);
+        call.resolve();
+    }
+
     @PermissionCallback
     private void handleCameraPermissionResult(PluginCall call) {
         if (PermissionState.GRANTED.equals(getPermissionState(CAMERA_PERMISSION_ALIAS))) {
@@ -507,7 +525,14 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     }
 
     @Override
-    public void onFocusSet(int pointX, int pointY) {}
+    public void onFocusSet(int pointX, int pointY) {
+        if(onFocusSetCallbackId == "") {
+            Logger.warn(getLogTag(), "onAutoFocusCallbackId is not set");
+            return;
+        }
+        PluginCall pluginCall = bridge.getSavedCall(onFocusSetCallbackId);
+        pluginCall.resolve();
+    }
 
     @Override
     public void onFocusSetError(String message) {}

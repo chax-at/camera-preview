@@ -7,6 +7,7 @@ import type {
   CameraPreviewFlashMode,
   CameraSampleOptions,
   CameraOpacityOptions,
+  OnFocusSetCallback
 } from './definitions';
 
 export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
@@ -194,6 +195,15 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     result: { width: number, height: number }[]
   }> {
     throw new Error('Method not implemented.');
+  }
+
+  async subscribeToFocusSet(callback: OnFocusSetCallback): Promise<void> {
+    // use callback.name to silence "'callback' is declared but its value is never read"
+    throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name); 
+  }
+
+  async unsubscribeToFocusSet(): Promise<void> {
+    throw new Error('unsubscribeToOnAutoFocus not supported under the web platform');
   }
 
 }
