@@ -355,16 +355,6 @@ public class CameraPreview: CAPPlugin {
     }
 
     @objc func subscribeToFocusSet(_ call: CAPPluginCall) {
-        let callbackId = call.getString("callbackId")
-        if callbackId == nil || Int(callbackId) ?? -1 == -1 {
-                call.resolve()
-            }
-            
-        // to be implemented if necessary
-        call.resolve(["result": ["x": 0, "y": 0]]);
-    }
-
-  @objc func unsubscribeToFocusSet(_ call: CAPPluginCall) {
         // to be implemented if necessary
         call.resolve();
     }

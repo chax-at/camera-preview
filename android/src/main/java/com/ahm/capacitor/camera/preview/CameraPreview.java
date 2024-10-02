@@ -230,6 +230,10 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
 
     @PluginMethod
     public void stop(final PluginCall call) {
+        if(onFocusSetCallbackId != "" && Integer.parseInt(onFocusSetCallbackId) != -1) {
+            bridge.releaseCall(onFocusSetCallbackId);
+        }
+        
         bridge
             .getActivity()
             .runOnUiThread(
@@ -400,17 +404,6 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         this.onFocusSetCallbackId = call.getCallbackId();
     }
 
-    @PluginMethod
-    public void unsubscribeToFocusSet(PluginCall call) {
-        if(this.onFocusSetCallbackId == "" || Integer.parseInt(onFocusSetCallbackId) == -1) {
-            call.resolve();
-            return;
-        }
-
-        bridge.releaseCall(this.onFocusSetCallbackId);
-        call.resolve();
-    }
-
     @PermissionCallback
     private void handleCameraPermissionResult(PluginCall call) {
         if (PermissionState.GRANTED.equals(getPermissionState(CAMERA_PERMISSION_ALIAS))) {
@@ -538,18 +531,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
             return;
         }
 
-        JSONObject jsonPoint = new JSONObject();
-
-        try {
-            jsonPoint.put("x", pointX);
-            jsonPoint.put("y", pointY);
-        }
-        catch(JSONException e) {
-            e.printStackTrace();
-        }
-
         JSObject jsObject = new JSObject();
-        //jsObject.put("result", jsonPoint);
         jsObject.put("x", pointX);
         jsObject.put("y", pointY);
         

@@ -202,8 +202,4 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name); 
   }
 
-  async unsubscribeToFocusSet(): Promise<void> {
-    throw new Error('unsubscribeToOnAutoFocus not supported under the web platform');
-  }
-
 }
