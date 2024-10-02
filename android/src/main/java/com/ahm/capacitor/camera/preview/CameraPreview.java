@@ -530,8 +530,22 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
             Logger.warn(getLogTag(), "onAutoFocusCallbackId is not set");
             return;
         }
+
+        JSONObject jsonPoint = new JSONObject();
+
+        try {
+            jsonPoint.put("x", pointX);
+            jsonPoint.put("y", pointY);
+        }
+        catch(JSONException e) {
+            e.printStackTrace();
+        }
+
+        JSObject jsObject = new JSObject();
+        jsObject.put("result", jsonPoint);
+        
         PluginCall pluginCall = bridge.getSavedCall(onFocusSetCallbackId);
-        pluginCall.resolve();
+        pluginCall.resolve(jsObject);
     }
 
     @Override

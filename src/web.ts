@@ -197,7 +197,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     throw new Error('Method not implemented.');
   }
 
-  async subscribeToFocusSet(callback: OnFocusSetCallback): Promise<void> {
+  async subscribeToFocusSet(callback: OnFocusSetCallback): Promise<{result: { x: number, y: number }}> {
     // use callback.name to silence "'callback' is declared but its value is never read"
     throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name); 
   }

@@ -72,7 +72,7 @@ export interface CameraPreviewPreviewDimensions {
   height: number;
 }
 
-export type OnFocusSetCallback = (
+export type OnFocusSetCallback = (result: { x: number, y: number },
   err?: any
 ) => void;
 
@@ -94,6 +94,6 @@ export interface CameraPreviewPlugin {
   flip(): Promise<void>;
   setOpacity(options: CameraOpacityOptions): Promise<Record<string,never>>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
-  subscribeToFocusSet(callback: OnFocusSetCallback): Promise<void>;
+  subscribeToFocusSet(callback: OnFocusSetCallback): Promise<{result: { x: number, y: number }}>;
   unsubscribeToFocusSet(): Promise<void>;
 }

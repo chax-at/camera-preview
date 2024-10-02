@@ -356,7 +356,7 @@ public class CameraPreview: CAPPlugin {
 
     @objc func subscribeToFocusSet(_ call: CAPPluginCall) {
         // to be implemented if necessary
-        call.resolve();
+        call.resolve(["result": ["x": 0, "y": 0]]);
     }
 
   @objc func unsubscribeToFocusSet(_ call: CAPPluginCall) {
