@@ -389,14 +389,21 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
 
     @PluginMethod(returnType = PluginMethod.RETURN_CALLBACK)
     public void subscribeToFocusSet(PluginCall call) {
+        if(Integer.parseInt(call.getCallbackId()) == -1)
+        {
+            Logger.warn(getLogTag(), "Callback is not valid. It will not be called on setting the camera focus.");
+            call.resolve();
+            return;
+        }
+
         call.setKeepAlive(true);
         this.onFocusSetCallbackId = call.getCallbackId();
     }
 
     @PluginMethod
     public void unsubscribeToFocusSet(PluginCall call) {
-        if(this.onFocusSetCallbackId == "") {
-            call.reject("CallbackId is not valid.");
+        if(this.onFocusSetCallbackId == "" || Integer.parseInt(onFocusSetCallbackId) == -1) {
+            call.resolve();
             return;
         }
 
@@ -526,7 +533,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
 
     @Override
     public void onFocusSet(int pointX, int pointY) {
-        if(onFocusSetCallbackId == "") {
+        if(onFocusSetCallbackId == "" || Integer.parseInt(onFocusSetCallbackId) == -1) {
             Logger.warn(getLogTag(), "onAutoFocusCallbackId is not set");
             return;
         }
@@ -542,7 +549,9 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         }
 
         JSObject jsObject = new JSObject();
-        jsObject.put("result", jsonPoint);
+        //jsObject.put("result", jsonPoint);
+        jsObject.put("x", pointX);
+        jsObject.put("y", pointY);
         
         PluginCall pluginCall = bridge.getSavedCall(onFocusSetCallbackId);
         pluginCall.resolve(jsObject);

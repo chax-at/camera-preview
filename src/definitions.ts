@@ -94,6 +94,6 @@ export interface CameraPreviewPlugin {
   flip(): Promise<void>;
   setOpacity(options: CameraOpacityOptions): Promise<Record<string,never>>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
-  subscribeToFocusSet(callback: OnFocusSetCallback): Promise<{result: { x: number, y: number }}>;
+  subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{result: { x: number, y: number }}>;
   unsubscribeToFocusSet(): Promise<void>;
 }
