@@ -93,5 +93,6 @@ export interface CameraPreviewPlugin {
   flip(): Promise<void>;
   setOpacity(options: CameraOpacityOptions): Promise<Record<string,never>>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
+  /** unsubscribing callbacks is - and should be for new callbacks - automatically handled in stop() */
   subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{result: { x: number, y: number }}>;
 }
