@@ -393,6 +393,10 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
 
     @PluginMethod(returnType = PluginMethod.RETURN_CALLBACK)
     public void subscribeToFocusSet(PluginCall call) {
+        if(onFocusSetCallbackId != "" && Integer.parseInt(onFocusSetCallbackId) != -1) {
+            bridge.releaseCall(onFocusSetCallbackId);
+        }
+
         if(Integer.parseInt(call.getCallbackId()) == -1)
         {
             Logger.warn(getLogTag(), "Callback is not valid. It will not be called on setting the camera focus.");
@@ -401,7 +405,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         }
 
         call.setKeepAlive(true);
-        this.onFocusSetCallbackId = call.getCallbackId();
+        onFocusSetCallbackId = call.getCallbackId();
     }
 
     @PermissionCallback
