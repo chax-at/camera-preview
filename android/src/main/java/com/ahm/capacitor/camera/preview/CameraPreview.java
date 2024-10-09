@@ -42,6 +42,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     private String snapshotCallbackId = "";
     private String recordCallbackId = "";
     private String cameraStartCallbackId = "";
+    private String onFocusSetCallbackId = "";
 
     // keep track of previously specified orientation to support locking orientation:
     private int previousOrientationRequest = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
@@ -229,6 +230,10 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
 
     @PluginMethod
     public void stop(final PluginCall call) {
+        if(onFocusSetCallbackId != "" && Integer.parseInt(onFocusSetCallbackId) != -1) {
+            bridge.releaseCall(onFocusSetCallbackId);
+        }
+        
         bridge
             .getActivity()
             .runOnUiThread(
@@ -386,6 +391,23 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         // call.resolve();
     }
 
+    @PluginMethod(returnType = PluginMethod.RETURN_CALLBACK)
+    public void subscribeToFocusSet(PluginCall call) {
+        if(onFocusSetCallbackId != "" && Integer.parseInt(onFocusSetCallbackId) != -1) {
+            bridge.releaseCall(onFocusSetCallbackId);
+        }
+
+        if(Integer.parseInt(call.getCallbackId()) == -1)
+        {
+            Logger.warn(getLogTag(), "Callback is not valid. It will not be called on setting the camera focus.");
+            call.resolve();
+            return;
+        }
+
+        call.setKeepAlive(true);
+        onFocusSetCallbackId = call.getCallbackId();
+    }
+
     @PermissionCallback
     private void handleCameraPermissionResult(PluginCall call) {
         if (PermissionState.GRANTED.equals(getPermissionState(CAMERA_PERMISSION_ALIAS))) {
@@ -507,7 +529,19 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     }
 
     @Override
-    public void onFocusSet(int pointX, int pointY) {}
+    public void onFocusSet(int pointX, int pointY) {
+        if(onFocusSetCallbackId == "" || Integer.parseInt(onFocusSetCallbackId) == -1) {
+            Logger.warn(getLogTag(), "onAutoFocusCallbackId is not set");
+            return;
+        }
+
+        JSObject jsObject = new JSObject();
+        jsObject.put("x", pointX);
+        jsObject.put("y", pointY);
+        
+        PluginCall pluginCall = bridge.getSavedCall(onFocusSetCallbackId);
+        pluginCall.resolve(jsObject);
+    }
 
     @Override
     public void onFocusSetError(String message) {}
