@@ -6,7 +6,7 @@ import AVFoundation
  * here: https://capacitor.ionicframework.com/docs/plugins/ios
  */
 @objc(CameraPreview)
-public class CameraPreview: CAPPlugin{
+public class CameraPreview: CAPPlugin {
 
     var previewView: UIView!
     var cameraPosition = String()
