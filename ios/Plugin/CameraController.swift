@@ -36,6 +36,8 @@ class CameraController: NSObject {
     var audioInput: AVCaptureDeviceInput?
 
     var zoomFactor: CGFloat = 1.0
+
+    var onFocusSetCallback: ((CGPoint)->())?
 }
 
 extension CameraController {
@@ -166,22 +168,27 @@ extension CameraController {
     }
 
     func setupGestures(target: UIView, enableZoom: Bool) {
-        setupTapGesture(target: target, selector: #selector(handleTap(_:)), delegate: self)
+        setupDoubleTapGesture(target: target, selector: #selector(handleDoubleTap(_:)), delegate: self)
         if enableZoom {
             setupPinchGesture(target: target, selector: #selector(handlePinch(_:)), delegate: self)
         }
     }
 
-    func setupTapGesture(target: UIView, selector: Selector, delegate: UIGestureRecognizerDelegate?) {
-        let tapGesture = UITapGestureRecognizer(target: self, action: selector)
-        tapGesture.delegate = delegate
-        target.addGestureRecognizer(tapGesture)
+    func setupDoubleTapGesture(target: UIView, selector: Selector, delegate: UIGestureRecognizerDelegate?) {
+        let doubleTapGesture = UITapGestureRecognizer(target: self, action: selector)
+        doubleTapGesture.delegate = delegate
+        doubleTapGesture.numberOfTapsRequired = 2
+        target.addGestureRecognizer(doubleTapGesture)
     }
 
     func setupPinchGesture(target: UIView, selector: Selector, delegate: UIGestureRecognizerDelegate?) {
         let pinchGesture = UIPinchGestureRecognizer(target: self, action: selector)
         pinchGesture.delegate = delegate
         target.addGestureRecognizer(pinchGesture)
+    }
+
+    func setOnFocusSetCallback(callback: @escaping (CGPoint)->()) {
+        self.onFocusSetCallback = callback
     }
 
     func updateVideoOrientation() {
@@ -460,6 +467,16 @@ extension CameraController {
         
         return device
     }
+
+    func onFocusSet(location: CGPoint) {
+        if self.onFocusSetCallback != nil {
+            self.onFocusSetCallback!(location)
+        }
+    }
+    
+    func cgPointMultiplyWithScalar(point: CGPoint, scalar: CGFloat) -> CGPoint {
+        return CGPointMake(point.x * scalar, point.y * scalar)
+    }
 }
 
 extension CameraController: UIGestureRecognizerDelegate {
@@ -468,7 +485,7 @@ extension CameraController: UIGestureRecognizerDelegate {
     }
 
     @objc
-    func handleTap(_ tap: UITapGestureRecognizer) {
+    func handleDoubleTap(_ tap: UITapGestureRecognizer) {
         guard let device = self.currentCameraPosition == .rear ? rearCamera : frontCamera else { return }
 
         let point = tap.location(in: tap.view)
@@ -489,6 +506,9 @@ extension CameraController: UIGestureRecognizerDelegate {
                 device.exposurePointOfInterest = CGPoint(x: CGFloat(devicePoint?.x ?? 0), y: CGFloat(devicePoint?.y ?? 0))
                 device.exposureMode = exposureMode
             }
+            
+            let scaledPoint = cgPointMultiplyWithScalar(point: point, scalar: UIScreen.main.scale)
+            onFocusSet(location: scaledPoint)
         } catch {
             debugPrint(error)
         }
