@@ -178,14 +178,14 @@ public class CameraActivity extends Fragment {
             FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, height);
             layoutParams.setMargins(x, y, 0, 0);
             frameContainerLayout =
-                    (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
+                (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
             frameContainerLayout.setLayoutParams(layoutParams);
 
             //video view
             mPreview = new Preview(getActivity(), enableOpacity, this);
             mainLayout = (FrameLayout) view.findViewById(getResources().getIdentifier("video_view", "id", appResourcesPackage));
             mainLayout.setLayoutParams(
-                    new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT)
+                new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT)
             );
             mainLayout.addView(mPreview);
             mainLayout.setEnabled(false);
@@ -290,7 +290,7 @@ public class CameraActivity extends Fragment {
                                                 layoutParams.topMargin = mPosY;
 
                                                 frameContainerLayout.setLayoutParams(layoutParams);
-                                                        
+    
                                                 // Remember this touch position for the next move event
                                                 mLastTouchX = x;
                                                 mLastTouchY = y;
@@ -420,8 +420,8 @@ public class CameraActivity extends Fragment {
                             );
 
                             FrameLayout.LayoutParams camViewLayout = new FrameLayout.LayoutParams(
-                                    frameContainerLayout.getWidth(),
-                                    frameContainerLayout.getHeight()
+                                frameContainerLayout.getWidth(),
+                                frameContainerLayout.getHeight()
                             );
                             camViewLayout.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
                             frameCamContainerLayout.setLayoutParams(camViewLayout);
@@ -776,8 +776,8 @@ public class CameraActivity extends Fragment {
                         }
                         // switch width/height when rotating 90/270 deg
                         Rect rect = orientation == 90 || orientation == 270
-                                ? new Rect(0, 0, size.height, size.width)
-                                : new Rect(0, 0, size.width, size.height);
+                            ? new Rect(0, 0, size.height, size.width)
+                            : new Rect(0, 0, size.width, size.height);
                         YuvImage yuvImage = new YuvImage(bytes, parameters.getPreviewFormat(), rect.width(), rect.height(), null);
                         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                         yuvImage.compressToJpeg(rect, quality, byteArrayOutputStream);
@@ -789,7 +789,7 @@ public class CameraActivity extends Fragment {
                         eventListener.onSnapshotTakenError("IO Error");
                     } finally {
                         mCamera.setPreviewCallback(null);
-                        }
+                    }
                 }
             }
         );
