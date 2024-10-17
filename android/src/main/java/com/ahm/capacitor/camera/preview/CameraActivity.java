@@ -204,6 +204,7 @@ public class CameraActivity extends Fragment {
             public boolean onSingleTapConfirmed(@NonNull MotionEvent event) {
                 if (tapToTakePicture) {
                     takePicture(0, 0, 85);
+                    return true;
                 }
                 return false;
             }
@@ -220,6 +221,7 @@ public class CameraActivity extends Fragment {
                             Log.d(TAG, "onTouch:" + " setFocusArea() did not succeed");
                         }
                     });
+                    return true;
                 }
                 return false;
             }
