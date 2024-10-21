@@ -197,40 +197,40 @@ public class CameraActivity extends Fragment {
     }
 
     private void setupTouchAndBackButton() {
-        final GestureDetector gestureDetector = new GestureDetector(getActivity().getApplicationContext(), new GestureDetector.SimpleOnGestureListener() {
+        final GestureDetector gestureDetector = new GestureDetector(getActivity().getApplicationContext(), new GestureDetector.SimpleOnGestureListener() {});
 
+        gestureDetector.setOnDoubleTapListener(new GestureDetector.OnDoubleTapListener() {
             @Override
-            public boolean onDown(@NonNull MotionEvent e) {
-                return true;
-            }
-
-            @Override
-            public boolean onSingleTapUp(@NonNull MotionEvent e) {
+            public boolean onSingleTapConfirmed(@NonNull MotionEvent event) {
                 if (tapToTakePicture) {
                     takePicture(0, 0, 85);
+                    return true;
                 }
                 return false;
             }
 
             @Override
-            public void onLongPress(@NonNull MotionEvent event) {
+            public boolean onDoubleTap(@NonNull MotionEvent event) {
                 if (tapToFocus) {
                     int x = (int) event.getX(0);
                     int y = (int) event.getY(0);
-                    setFocusArea(x, y, new Camera.AutoFocusCallback() {
-                        public void onAutoFocus(boolean success, Camera camera) {
-                            if (success) {
-                                eventListener.onFocusSet(x, y);
-                            } else {
-                                Log.d(TAG, "onTouch:" + " setFocusArea() did not succeed");
-                            }
+                    setFocusArea(x, y, (success, camera) -> {
+                        if (success) {
+                            eventListener.onFocusSet(x, y);
+                        } else {
+                            Log.d(TAG, "onTouch:" + " setFocusArea() did not succeed");
                         }
                     });
+                    return true;
                 }
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(@NonNull MotionEvent event) {
+                return false;
             }
         });
-
-        gestureDetector.setIsLongpressEnabled(true);
 
         getActivity()
             .runOnUiThread(
@@ -290,7 +290,7 @@ public class CameraActivity extends Fragment {
                                                 layoutParams.topMargin = mPosY;
 
                                                 frameContainerLayout.setLayoutParams(layoutParams);
-
+    
                                                 // Remember this touch position for the next move event
                                                 mLastTouchX = x;
                                                 mLastTouchY = y;

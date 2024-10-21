@@ -22,6 +22,7 @@ public class CameraPreview: CAPPlugin {
     var enableZoom: Bool?
     var highResolutionOutput: Bool = false
     var disableAudio: Bool = false
+    var onFocusSetCallbackId: String? = nil
 
     @objc func rotated() {
         let height = self.paddingBottom != nil ? self.height! - self.paddingBottom!: self.height!
@@ -39,6 +40,15 @@ public class CameraPreview: CAPPlugin {
         }
 
         cameraController.updateVideoOrientation()
+    }
+    
+    @objc func onFocusSet(screenPosition: CGPoint) {
+        if self.onFocusSetCallbackId != nil {
+            let call = self.bridge?.savedCall(withID: self.onFocusSetCallbackId!)
+            if call != nil {
+                call!.resolve(["x": screenPosition.x, "y": screenPosition.y])
+            }
+        }
     }
 
     @objc func start(_ call: CAPPluginCall) {
@@ -102,6 +112,8 @@ public class CameraPreview: CAPPlugin {
                             NotificationCenter.default.addObserver(self, selector: #selector(CameraPreview.rotated), name: UIDevice.orientationDidChangeNotification, object: nil)
                         }
 
+                        self.cameraController.setOnFocusSetCallback(callback: self.onFocusSet)
+
                         call.resolve()
 
                     }
@@ -126,12 +138,17 @@ public class CameraPreview: CAPPlugin {
                 self.cameraController.captureSession?.stopRunning()
                 self.previewView.removeFromSuperview()
                 self.webView?.isOpaque = true
+                if self.onFocusSetCallbackId != nil {
+                    self.bridge?.releaseCall(withID: self.onFocusSetCallbackId!)
+                    self.onFocusSetCallbackId = nil
+                }
                 call.resolve()
             } else {
                 call.reject("camera already stopped")
             }
         }
     }
+    
     // Get user's cache directory path
     @objc func getTempFilePath() -> URL {
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -355,8 +372,13 @@ public class CameraPreview: CAPPlugin {
     }
 
     @objc func subscribeToFocusSet(_ call: CAPPluginCall) {
-        // to be implemented if necessary
-        call.resolve();
+        if self.onFocusSetCallbackId != nil {
+            self.bridge?.releaseCall(withID: self.onFocusSetCallbackId!)
+            self.onFocusSetCallbackId = nil
+        }
+
+        self.onFocusSetCallbackId = call.callbackId
+        call.keepAlive = true
     }
 
 }
