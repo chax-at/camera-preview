@@ -126,11 +126,11 @@ public class CameraActivity extends Fragment {
         return view;
     }
 
-    public void setRect(int x, int y, int width, int height) {
+    public void setRect(int x, int y, Integer width, Integer height) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
+        this.width = width == null ? ViewGroup.LayoutParams.MATCH_PARENT : width;
+        this.height = height == null ? ViewGroup.LayoutParams.MATCH_PARENT : height;
     }
 
     public void setPreviewDimensions(int x, int y, int width, int height) {
@@ -177,8 +177,9 @@ public class CameraActivity extends Fragment {
             //set box position and size
             FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, height);
             layoutParams.setMargins(x, y, 0, 0);
-            frameContainerLayout =
-                (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
+            frameContainerLayout = (FrameLayout) view.findViewById(
+                getResources().getIdentifier("frame_container", "id", appResourcesPackage)
+            );
             frameContainerLayout.setLayoutParams(layoutParams);
 
             //video view
@@ -232,22 +233,21 @@ public class CameraActivity extends Fragment {
             }
         });
 
-        getActivity()
-            .runOnUiThread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        frameContainerLayout.setClickable(true);
-                        frameContainerLayout.setOnTouchListener(
-                            new View.OnTouchListener() {
-                                private int mLastTouchX;
-                                private int mLastTouchY;
-                                private int mPosX = 0;
-                                private int mPosY = 0;
+        getActivity().runOnUiThread(
+            new Runnable() {
+                @Override
+                public void run() {
+                    frameContainerLayout.setClickable(true);
+                    frameContainerLayout.setOnTouchListener(
+                        new View.OnTouchListener() {
+                            private int mLastTouchX;
+                            private int mLastTouchY;
+                            private int mPosX = 0;
+                            private int mPosY = 0;
 
-                                @Override
-                                public boolean onTouch(View v, MotionEvent event) {
-                                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
+                            @Override
+                            public boolean onTouch(View v, MotionEvent event) {
+                                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
 
                                     boolean isSingleTapTouch = gestureDetector.onTouchEvent(event);
                                     int action = event.getAction();
@@ -300,24 +300,38 @@ public class CameraActivity extends Fragment {
                                                 break;
                                         }
                                     }
+                                }
+                                return true;
+                            }
+                        }
+                    );
+                    frameContainerLayout.setFocusableInTouchMode(true);
+                    frameContainerLayout.requestFocus();
+                    frameContainerLayout.setOnKeyListener(
+                        new View.OnKeyListener() {
+                            @Override
+                            public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
+                                if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                                    eventListener.onBackButton();
                                     return true;
                                 }
+                                return false;
                             }
                         );
-                        frameContainerLayout.setFocusableInTouchMode(true);
-                        frameContainerLayout.requestFocus();
-                        frameContainerLayout.setOnKeyListener(
-                            new View.OnKeyListener() {
-                                @Override
-                                public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
-                                    if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
-                                        eventListener.onBackButton();
-                                        return true;
-                                    }
-                                    return false;
+                    frameContainerLayout.setFocusableInTouchMode(true);
+                    frameContainerLayout.requestFocus();
+                    frameContainerLayout.setOnKeyListener(
+                        new View.OnKeyListener() {
+                            @Override
+                            public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
+                                if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                                    eventListener.onBackButton();
+                                    return true;
                                 }
+                                return false;
                             }
-                        );
+                        }
+                    );
                     }
 
                     private float mDist = 0F;
@@ -358,7 +372,8 @@ public class CameraActivity extends Fragment {
                         mCamera.setParameters(params);
                     }
                 }
-            );
+            }
+        );
     }
 
     private void setDefaultCameraId() {
@@ -454,9 +469,10 @@ public class CameraActivity extends Fragment {
             getResources().getIdentifier("frame_container", "id", appResourcesPackage)
         );
 
-        final int previousOrientation = frameContainerLayout.getHeight() > frameContainerLayout.getWidth()
-            ? Configuration.ORIENTATION_PORTRAIT
-            : Configuration.ORIENTATION_LANDSCAPE;
+        final int previousOrientation =
+            frameContainerLayout.getHeight() > frameContainerLayout.getWidth()
+                ? Configuration.ORIENTATION_PORTRAIT
+                : Configuration.ORIENTATION_LANDSCAPE;
         // Checks if the orientation of the screen has changed
         if (newConfig.orientation != previousOrientation) {
             final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(
@@ -482,6 +498,45 @@ public class CameraActivity extends Fragment {
         return mCamera;
     }
 
+    /**
+     * Method to get the front camera id if the current camera is back and visa versa
+     *
+     * @return front or back camera id depending on the currently active camera
+     */
+    private int getNextCameraId() {
+        int nextCameraId = 0;
+
+        // Find the total number of cameras available
+        // NOTE: The getNumberOfCameras() method in Android's android.hardware.camera API returns the total
+        // number of cameras available on the device. The number might not be limited to just the front
+        // and back cameras because modern smartphones often come with more than two cameras.
+        // For example, devices might have:
+        // - a main (back) camera.
+        // - a wide-angle camera.
+        // - a telephoto camera.
+        // - a depth-sensing camera.
+        // - an ultrawide camera.
+        // - a macro camera.
+        // etc.
+        numberOfCameras = Camera.getNumberOfCameras();
+
+        int nextFacing =
+            cameraCurrentlyLocked == Camera.CameraInfo.CAMERA_FACING_BACK
+                ? Camera.CameraInfo.CAMERA_FACING_FRONT
+                : Camera.CameraInfo.CAMERA_FACING_BACK;
+
+        // Find the next ID of the camera to switch to (front if the current is back and visa versa)
+        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.getCameraInfo(i, cameraInfo);
+            if (cameraInfo.facing == nextFacing) {
+                nextCameraId = i;
+                break;
+            }
+        }
+        return nextCameraId;
+    }
+
     public void switchCamera() {
         // check for availability of multiple cameras
         if (numberOfCameras == 1) {
@@ -499,7 +554,7 @@ public class CameraActivity extends Fragment {
 
             Log.d(TAG, "cameraCurrentlyLocked := " + Integer.toString(cameraCurrentlyLocked));
             try {
-                cameraCurrentlyLocked = (cameraCurrentlyLocked + 1) % numberOfCameras;
+                cameraCurrentlyLocked = getNextCameraId();
                 Log.d(TAG, "cameraCurrentlyLocked new: " + cameraCurrentlyLocked);
             } catch (Exception exception) {
                 Log.d(TAG, exception.getMessage());
@@ -775,9 +830,10 @@ public class CameraActivity extends Fragment {
                             bytes = rotateNV21(bytes, size.width, size.height, orientation);
                         }
                         // switch width/height when rotating 90/270 deg
-                        Rect rect = orientation == 90 || orientation == 270
-                            ? new Rect(0, 0, size.height, size.width)
-                            : new Rect(0, 0, size.width, size.height);
+                        Rect rect =
+                            orientation == 90 || orientation == 270
+                                ? new Rect(0, 0, size.height, size.width)
+                                : new Rect(0, 0, size.width, size.height);
                         YuvImage yuvImage = new YuvImage(bytes, parameters.getPreviewFormat(), rect.width(), rect.height(), null);
                         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                         yuvImage.compressToJpeg(rect, quality, byteArrayOutputStream);
@@ -1022,10 +1078,10 @@ public class CameraActivity extends Fragment {
             y = height - 100;
         }
         return new Rect(
-            Math.round((x - 100) * 2000 / width - 1000),
-            Math.round((y - 100) * 2000 / height - 1000),
-            Math.round((x + 100) * 2000 / width - 1000),
-            Math.round((y + 100) * 2000 / height - 1000)
+            Math.round(((x - 100) * 2000) / width - 1000),
+            Math.round(((y - 100) * 2000) / height - 1000),
+            Math.round(((x + 100) * 2000) / width - 1000),
+            Math.round(((y + 100) * 2000) / height - 1000)
         );
     }
 

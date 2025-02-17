@@ -2,15 +2,19 @@
 <h3 align="center">Capacitor Camera Preview</h3>
 <p align="center"><strong><code>@capacitor-community/camera-preview</code></strong></p>
 <br>
-<p align="center"><strong>CAPACITOR 7</strong></p><br>
+<p align="center"><strong>CAPACITOR 8</strong></p><br>
 
 <p align="center">
   Capacitor plugin that allows camera interaction from Javascript and HTML<br>(based on cordova-plugin-camera-preview).
 </p>
 <br>
-Version 7 of this plugin requires Capacitor 7.
+Version 8 of this plugin requires Capacitor 8.
 
-If you are using Capacitor 6, use [version 6.1](https://github.com/capacitor-community/camera-preview/releases/tag/v6.0.1)
+If you are using Capacitor 7, use [version 7.0.5](https://github.com/capacitor-community/camera-preview/releases/tag/v7.0.5)
+
+If you are using Capacitor 6, use [version 6.0.1](https://github.com/capacitor-community/camera-preview/releases/tag/v6.0.1)
+
+If you are using Capacitor 5, use [version 5](https://github.com/capacitor-community/camera-preview/releases/tag/v5.0.0)
 
 If you are using Capacitor 4, use [version 4](https://github.com/capacitor-community/camera-preview/releases/tag/v4.0.0)
 
@@ -94,10 +98,10 @@ Starts the camera preview instance.
 | Option                       | values        | descriptions                                                                                                                                                             |
 | ---------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | position                     | front \| rear | Show front or rear camera when start the preview. Defaults to front                                                                                                      |
-| width                        | number        | (optional) The preview width in pixels, default window.screen.width (applicable to the android and ios platforms only)                                                   |
-| height                       | number        | (optional) The preview height in pixels, default window.screen.height (applicable to the android and ios platforms only)                                                 |
-| x                            | number        | (optional) The x origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
-| y                            | number        | (optional) The y origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
+| width                        | number (integer !)       | (optional) The preview width in pixels, default window.screen.width (applicable to the android and ios platforms only)                                                   |
+| height                       | number (integer !)       | (optional) The preview height in pixels, default window.screen.height (applicable to the android and ios platforms only)                                                 |
+| x                            | number    (integer !)    | (optional) The x origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
+| y                            | number    (integer !)    | (optional) The y origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
 | toBack                       | boolean       | (optional) Brings your html in front of your preview, default false (applicable to the android and ios platforms only)                                                   |
 | paddingBottom                | number        | (optional) The preview bottom padding in pixes. Useful to keep the appropriate preview sizes when orientation changes (applicable to the android and ios platforms only) |
 | rotateWhenOrientationChanged | boolean       | (optional) Rotate preview when orientation changes (applicable to the ios platforms only; default value is true)                                                         |
@@ -318,6 +322,15 @@ const resultRecordVideo = await CameraPreview.stopRecordVideo();
 ```javascript
 const myCamera = CameraPreview.start({ enableOpacity: true });
 myCamera.setOpacity({ opacity: 0.4 });
+```
+
+### isCameraStarted() ---- ANDROID and iOS only
+
+<info>Check or detect if the camera has been started</info>
+<br />
+
+```javascript
+const { value } = await CameraPreview.isCameraStarted();
 ```
 
 # <<<<<<< HEAD
