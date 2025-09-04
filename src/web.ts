@@ -7,7 +7,7 @@ import type {
   CameraPreviewFlashMode,
   CameraSampleOptions,
   CameraOpacityOptions,
-  OnFocusSetCallback
+  OnFocusSetCallback,
 } from './definitions';
 
 export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
@@ -17,14 +17,8 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
    */
   private isBackCamera: boolean;
 
-  constructor() {
-    super({
-      name: 'CameraPreview',
-      platforms: ['web'],
-    });
-  }
-
-  async start(options: CameraPreviewOptions): Promise<Record<string,never>> {
+  async start(options: CameraPreviewOptions): Promise<Record<string, never>> {
+    // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve, reject) => {
       await navigator.mediaDevices
         .getUserMedia({
@@ -90,7 +84,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
             },
             (err) => {
               reject(err);
-            }
+            },
           );
         }
       } else {
@@ -99,11 +93,11 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     });
   }
 
-  async startRecordVideo(): Promise<Record<string,never>> {
+  async startRecordVideo(): Promise<Record<string, never>> {
     throw this.unimplemented('Not implemented on web.');
   }
 
-  async stopRecordVideo(): Promise<Record<string,never>> {
+  async stopRecordVideo(): Promise<Record<string, never>> {
     throw this.unimplemented('Not implemented on web.');
   }
 
@@ -123,7 +117,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   }
 
   async capture(options: CameraPreviewPictureOptions): Promise<any> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const video = document.getElementById('video') as HTMLVideoElement;
       const canvas = document.createElement('canvas');
 
@@ -168,7 +162,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
 
   async getFlashMode(): Promise<{ flashMode: null }> {
     return {
-      flashMode: null
+      flashMode: null,
     };
   }
 
@@ -192,14 +186,13 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   }
 
   getSupportedPictureSizes(): Promise<{
-    result: { width: number, height: number }[]
+    result: { width: number; height: number }[];
   }> {
     throw new Error('Method not implemented.');
   }
 
-  async subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{result: { x: number, y: number }}> {
+  async subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{ result: { x: number; y: number } }> {
     // use callback.name to silence "'callback' is declared but its value is never read"
-    throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name); 
+    throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name);
   }
-
 }
