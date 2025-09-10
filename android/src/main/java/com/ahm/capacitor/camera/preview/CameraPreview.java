@@ -85,7 +85,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
     @PluginMethod
     public void setPreviewDimensions(PluginCall call) {
         if (this.hasCamera(call) == false) {
-            call.error("Camera is not running");
+            call.reject("Camera is not running");
             return;
         }
 
@@ -233,7 +233,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         if(onFocusSetCallbackId != "" && Integer.parseInt(onFocusSetCallbackId) != -1) {
             bridge.releaseCall(onFocusSetCallbackId);
         }
-        
+
         bridge
             .getActivity()
             .runOnUiThread(
@@ -538,7 +538,7 @@ public class CameraPreview extends Plugin implements CameraActivity.CameraPrevie
         JSObject jsObject = new JSObject();
         jsObject.put("x", pointX);
         jsObject.put("y", pointY);
-        
+
         PluginCall pluginCall = bridge.getSavedCall(onFocusSetCallbackId);
         pluginCall.resolve(jsObject);
     }
