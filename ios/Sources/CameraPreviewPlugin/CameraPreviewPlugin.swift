@@ -23,10 +23,10 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "startRecordVideo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stopRecordVideo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "isCameraStarted", returnType: CAPPluginReturnPromise),
-        CAP_PLUGIN_METHOD(name: "getSupportedPictureSizes", returnType: CAPPluginReturnPromise);
-        CAP_PLUGIN_METHOD(name: "getFlashMode", returnType: CAPPluginReturnPromise);
-        CAP_PLUGIN_METHOD(name: "setPreviewDimensions", returnType: CAPPluginReturnPromise);
-        CAP_PLUGIN_METHOD(name: "subscribeToFocusSet", returnType: CAPPluginReturnCallback);
+        CAPPluginMethod(name: "getSupportedPictureSizes", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getFlashMode", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setPreviewDimensions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "subscribeToFocusSet", returnType: CAPPluginReturnCallback)
     ]
 
     var previewView: UIView!

@@ -300,7 +300,6 @@ public class CameraActivity extends Fragment {
                                                 break;
                                         }
                                     }
-                                }
                                 return true;
                             }
                         }
@@ -317,7 +316,7 @@ public class CameraActivity extends Fragment {
                                 }
                                 return false;
                             }
-                        );
+                        });
                     frameContainerLayout.setFocusableInTouchMode(true);
                     frameContainerLayout.requestFocus();
                     frameContainerLayout.setOnKeyListener(
@@ -372,7 +371,6 @@ public class CameraActivity extends Fragment {
                         mCamera.setParameters(params);
                     }
                 }
-            }
         );
     }
 
