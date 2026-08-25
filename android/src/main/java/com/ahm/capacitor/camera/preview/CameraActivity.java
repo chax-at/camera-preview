@@ -249,57 +249,57 @@ public class CameraActivity extends Fragment {
                             public boolean onTouch(View v, MotionEvent event) {
                                 FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
 
-                                    boolean isSingleTapTouch = gestureDetector.onTouchEvent(event);
-                                    int action = event.getAction();
-                                    int eventCount = event.getPointerCount();
-                                    Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
-                                    if (action == MotionEvent.ACTION_DOWN) {
-                                        mDist = 0;
+                                boolean isSingleTapTouch = gestureDetector.onTouchEvent(event);
+                                int action = event.getAction();
+                                int eventCount = event.getPointerCount();
+                                Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
+                                if (action == MotionEvent.ACTION_DOWN) {
+                                    mDist = 0;
+                                }
+                                if (eventCount > 1) {
+                                    // handle multi-touch events
+                                    Camera.Parameters params = mCamera.getParameters();
+                                    if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
+                                        handleZoom(event, params);
                                     }
-                                    if (eventCount > 1) {
-                                        // handle multi-touch events
-                                        Camera.Parameters params = mCamera.getParameters();
-                                        if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
-                                            handleZoom(event, params);
-                                        }
-                                    } else if((action == MotionEvent.ACTION_MOVE || !isSingleTapTouch) && dragEnabled) {
-                                        int x;
-                                        int y;
+                                } else if((action == MotionEvent.ACTION_MOVE || !isSingleTapTouch) && dragEnabled) {
+                                    int x;
+                                    int y;
 
-                                        switch (event.getAction()) {
-                                            case MotionEvent.ACTION_DOWN:
-                                                if (mLastTouchX == 0 || mLastTouchY == 0) {
-                                                    mLastTouchX = (int) event.getRawX() - layoutParams.leftMargin;
-                                                    mLastTouchY = (int) event.getRawY() - layoutParams.topMargin;
-                                                } else {
-                                                    mLastTouchX = (int) event.getRawX();
-                                                    mLastTouchY = (int) event.getRawY();
-                                                }
-                                                break;
-                                            case MotionEvent.ACTION_MOVE:
-                                                x = (int) event.getRawX();
-                                                y = (int) event.getRawY();
+                                    switch (event.getAction()) {
+                                        case MotionEvent.ACTION_DOWN:
+                                            if (mLastTouchX == 0 || mLastTouchY == 0) {
+                                                mLastTouchX = (int) event.getRawX() - layoutParams.leftMargin;
+                                                mLastTouchY = (int) event.getRawY() - layoutParams.topMargin;
+                                            } else {
+                                                mLastTouchX = (int) event.getRawX();
+                                                mLastTouchY = (int) event.getRawY();
+                                            }
+                                            break;
+                                        case MotionEvent.ACTION_MOVE:
+                                            x = (int) event.getRawX();
+                                            y = (int) event.getRawY();
 
-                                                final float dx = x - mLastTouchX;
-                                                final float dy = y - mLastTouchY;
+                                            final float dx = x - mLastTouchX;
+                                            final float dy = y - mLastTouchY;
 
-                                                mPosX += dx;
-                                                mPosY += dy;
+                                            mPosX += dx;
+                                            mPosY += dy;
 
-                                                layoutParams.leftMargin = mPosX;
-                                                layoutParams.topMargin = mPosY;
+                                            layoutParams.leftMargin = mPosX;
+                                            layoutParams.topMargin = mPosY;
 
-                                                frameContainerLayout.setLayoutParams(layoutParams);
-    
-                                                // Remember this touch position for the next move event
-                                                mLastTouchX = x;
-                                                mLastTouchY = y;
+                                            frameContainerLayout.setLayoutParams(layoutParams);
 
-                                                break;
-                                            default:
-                                                break;
-                                        }
+                                            // Remember this touch position for the next move event
+                                            mLastTouchX = x;
+                                            mLastTouchY = y;
+
+                                            break;
+                                        default:
+                                            break;
                                     }
+                                }
                                 return true;
                             }
                         }
@@ -331,46 +331,46 @@ public class CameraActivity extends Fragment {
                             }
                         }
                     );
-                    }
-
-                    private float mDist = 0F;
-
-                    private void handleZoom(MotionEvent event, Camera.Parameters params) {
-                        if (mCamera == null) {
-                            return;
-                        }
-
-                        mCamera.cancelAutoFocus();
-
-                        int maxZoom = params.getMaxZoom();
-                        int zoom = params.getZoom();
-                        float newDist = getFingerSpacing(event);
-                        float distDifference = newDist - mDist;
-
-                        // avoid zoom jumps
-                        if(mDist == 0) {
-                            mDist = newDist;
-                            return;
-                        }
-
-                        int zoomDifference = 0;
-                        int zoomFactor = 10;
-                        int maximumZoomStep = 10;
-
-                        if (newDist > mDist) {
-                            //zoom in;
-                            zoomDifference = Math.min(Math.round(distDifference / zoomFactor), maximumZoomStep);
-                            zoom = Math.min(maxZoom, zoom + zoomDifference);
-                        } else if (newDist < mDist) {
-                            //zoom out
-                            zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
-                            zoom = Math.max(0, zoom + zoomDifference);
-                        }
-                        mDist = newDist;
-                        params.setZoom(zoom);
-                        mCamera.setParameters(params);
-                    }
                 }
+
+                private float mDist = 0F;
+
+                private void handleZoom(MotionEvent event, Camera.Parameters params) {
+                    if (mCamera == null) {
+                        return;
+                    }
+
+                    mCamera.cancelAutoFocus();
+
+                    int maxZoom = params.getMaxZoom();
+                    int zoom = params.getZoom();
+                    float newDist = getFingerSpacing(event);
+                    float distDifference = newDist - mDist;
+
+                    // avoid zoom jumps
+                    if(mDist == 0) {
+                        mDist = newDist;
+                        return;
+                    }
+
+                    int zoomDifference = 0;
+                    int zoomFactor = 10;
+                    int maximumZoomStep = 10;
+
+                    if (newDist > mDist) {
+                        //zoom in;
+                        zoomDifference = Math.min(Math.round(distDifference / zoomFactor), maximumZoomStep);
+                        zoom = Math.min(maxZoom, zoom + zoomDifference);
+                    } else if (newDist < mDist) {
+                        //zoom out
+                        zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
+                        zoom = Math.max(0, zoom + zoomDifference);
+                    }
+                    mDist = newDist;
+                    params.setZoom(zoom);
+                    mCamera.setParameters(params);
+                }
+            }
         );
     }
 
@@ -758,7 +758,7 @@ public class CameraActivity extends Fragment {
                     // check if this pictureSize closer to requested width and height
                     if (
                         Math.abs(width * height - supportedSize.width * supportedSize.height) <
-                        Math.abs(width * height - size.width * size.height)
+                            Math.abs(width * height - size.width * size.height)
                     ) {
                         size.width = supportedSize.width;
                         size.height = supportedSize.height;
