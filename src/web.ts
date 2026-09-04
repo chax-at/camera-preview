@@ -17,7 +17,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
    */
   private isBackCamera: boolean;
 
-  async start(options: CameraPreviewOptions): Promise<Record<string, never>> {
+  async start(options: CameraPreviewOptions): Promise<void> {
     // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve, reject) => {
       await navigator.mediaDevices
@@ -80,7 +80,7 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
               //video.src = window.URL.createObjectURL(stream);
               videoElement.srcObject = stream;
               videoElement.play();
-              resolve({});
+              resolve();
             },
             (err) => {
               reject(err);
@@ -93,11 +93,11 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     });
   }
 
-  async startRecordVideo(): Promise<Record<string, never>> {
+  async startRecordVideo(): Promise<void> {
     throw this.unimplemented('Not implemented on web.');
   }
 
-  async stopRecordVideo(): Promise<Record<string, never>> {
+  async stopRecordVideo(): Promise<void> {
     throw this.unimplemented('Not implemented on web.');
   }
 
@@ -166,7 +166,8 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
     };
   }
 
-  async setFlashMode(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async setFlashMode(_options: { flashMode: CameraPreviewFlashMode | string }): Promise<void> {
     throw new Error('setFlashMode not supported under the web platform');
   }
 
@@ -194,5 +195,9 @@ export class CameraPreviewWeb extends WebPlugin implements CameraPreviewPlugin {
   async subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{ result: { x: number; y: number } }> {
     // use callback.name to silence "'callback' is declared but its value is never read"
     throw new Error('subscribeToOnAutoFocus not supported under the web platform. ' + callback.name);
+  }
+  
+  async isCameraStarted(): Promise<{ value: boolean }> {
+    throw this.unimplemented('Not implemented on web.');
   }
 }

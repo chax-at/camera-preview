@@ -126,11 +126,11 @@ public class CameraActivity extends Fragment {
         return view;
     }
 
-    public void setRect(int x, int y, int width, int height) {
+    public void setRect(int x, int y, Integer width, Integer height) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
+        this.width = width == null ? ViewGroup.LayoutParams.MATCH_PARENT : width;
+        this.height = height == null ? ViewGroup.LayoutParams.MATCH_PARENT : height;
     }
 
     public void setPreviewDimensions(int x, int y, int width, int height) {
@@ -177,8 +177,9 @@ public class CameraActivity extends Fragment {
             //set box position and size
             FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, height);
             layoutParams.setMargins(x, y, 0, 0);
-            frameContainerLayout =
-                (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
+            frameContainerLayout = (FrameLayout) view.findViewById(
+                getResources().getIdentifier("frame_container", "id", appResourcesPackage)
+            );
             frameContainerLayout.setLayoutParams(layoutParams);
 
             //video view
@@ -232,133 +233,145 @@ public class CameraActivity extends Fragment {
             }
         });
 
-        getActivity()
-            .runOnUiThread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        frameContainerLayout.setClickable(true);
-                        frameContainerLayout.setOnTouchListener(
-                            new View.OnTouchListener() {
-                                private int mLastTouchX;
-                                private int mLastTouchY;
-                                private int mPosX = 0;
-                                private int mPosY = 0;
+        getActivity().runOnUiThread(
+            new Runnable() {
+                @Override
+                public void run() {
+                    frameContainerLayout.setClickable(true);
+                    frameContainerLayout.setOnTouchListener(
+                        new View.OnTouchListener() {
+                            private int mLastTouchX;
+                            private int mLastTouchY;
+                            private int mPosX = 0;
+                            private int mPosY = 0;
 
-                                @Override
-                                public boolean onTouch(View v, MotionEvent event) {
-                                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
+                            @Override
+                            public boolean onTouch(View v, MotionEvent event) {
+                                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frameContainerLayout.getLayoutParams();
 
-                                    boolean isSingleTapTouch = gestureDetector.onTouchEvent(event);
-                                    int action = event.getAction();
-                                    int eventCount = event.getPointerCount();
-                                    Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
-                                    if (action == MotionEvent.ACTION_DOWN) {
-                                        mDist = 0;
+                                boolean isSingleTapTouch = gestureDetector.onTouchEvent(event);
+                                int action = event.getAction();
+                                int eventCount = event.getPointerCount();
+                                Log.d(TAG, "onTouch event, action, count: " + event + ", " + action + ", " + eventCount);
+                                if (action == MotionEvent.ACTION_DOWN) {
+                                    mDist = 0;
+                                }
+                                if (eventCount > 1) {
+                                    // handle multi-touch events
+                                    Camera.Parameters params = mCamera.getParameters();
+                                    if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
+                                        handleZoom(event, params);
                                     }
-                                    if (eventCount > 1) {
-                                        // handle multi-touch events
-                                        Camera.Parameters params = mCamera.getParameters();
-                                        if (action == MotionEvent.ACTION_MOVE && params.isZoomSupported()) {
-                                            handleZoom(event, params);
-                                        }
-                                    } else if((action == MotionEvent.ACTION_MOVE || !isSingleTapTouch) && dragEnabled) {
-                                        int x;
-                                        int y;
+                                } else if((action == MotionEvent.ACTION_MOVE || !isSingleTapTouch) && dragEnabled) {
+                                    int x;
+                                    int y;
 
-                                        switch (event.getAction()) {
-                                            case MotionEvent.ACTION_DOWN:
-                                                if (mLastTouchX == 0 || mLastTouchY == 0) {
-                                                    mLastTouchX = (int) event.getRawX() - layoutParams.leftMargin;
-                                                    mLastTouchY = (int) event.getRawY() - layoutParams.topMargin;
-                                                } else {
-                                                    mLastTouchX = (int) event.getRawX();
-                                                    mLastTouchY = (int) event.getRawY();
-                                                }
-                                                break;
-                                            case MotionEvent.ACTION_MOVE:
-                                                x = (int) event.getRawX();
-                                                y = (int) event.getRawY();
+                                    switch (event.getAction()) {
+                                        case MotionEvent.ACTION_DOWN:
+                                            if (mLastTouchX == 0 || mLastTouchY == 0) {
+                                                mLastTouchX = (int) event.getRawX() - layoutParams.leftMargin;
+                                                mLastTouchY = (int) event.getRawY() - layoutParams.topMargin;
+                                            } else {
+                                                mLastTouchX = (int) event.getRawX();
+                                                mLastTouchY = (int) event.getRawY();
+                                            }
+                                            break;
+                                        case MotionEvent.ACTION_MOVE:
+                                            x = (int) event.getRawX();
+                                            y = (int) event.getRawY();
 
-                                                final float dx = x - mLastTouchX;
-                                                final float dy = y - mLastTouchY;
+                                            final float dx = x - mLastTouchX;
+                                            final float dy = y - mLastTouchY;
 
-                                                mPosX += dx;
-                                                mPosY += dy;
+                                            mPosX += dx;
+                                            mPosY += dy;
 
-                                                layoutParams.leftMargin = mPosX;
-                                                layoutParams.topMargin = mPosY;
+                                            layoutParams.leftMargin = mPosX;
+                                            layoutParams.topMargin = mPosY;
 
-                                                frameContainerLayout.setLayoutParams(layoutParams);
-    
-                                                // Remember this touch position for the next move event
-                                                mLastTouchX = x;
-                                                mLastTouchY = y;
+                                            frameContainerLayout.setLayoutParams(layoutParams);
 
-                                                break;
-                                            default:
-                                                break;
-                                        }
+                                            // Remember this touch position for the next move event
+                                            mLastTouchX = x;
+                                            mLastTouchY = y;
+
+                                            break;
+                                        default:
+                                            break;
                                     }
+                                }
+                                return true;
+                            }
+                        }
+                    );
+                    frameContainerLayout.setFocusableInTouchMode(true);
+                    frameContainerLayout.requestFocus();
+                    frameContainerLayout.setOnKeyListener(
+                        new View.OnKeyListener() {
+                            @Override
+                            public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
+                                if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                                    eventListener.onBackButton();
                                     return true;
                                 }
+                                return false;
                             }
-                        );
-                        frameContainerLayout.setFocusableInTouchMode(true);
-                        frameContainerLayout.requestFocus();
-                        frameContainerLayout.setOnKeyListener(
-                            new View.OnKeyListener() {
-                                @Override
-                                public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
-                                    if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
-                                        eventListener.onBackButton();
-                                        return true;
-                                    }
-                                    return false;
+                        });
+                    frameContainerLayout.setFocusableInTouchMode(true);
+                    frameContainerLayout.requestFocus();
+                    frameContainerLayout.setOnKeyListener(
+                        new View.OnKeyListener() {
+                            @Override
+                            public boolean onKey(View v, int keyCode, android.view.KeyEvent event) {
+                                if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                                    eventListener.onBackButton();
+                                    return true;
                                 }
+                                return false;
                             }
-                        );
-                    }
-
-                    private float mDist = 0F;
-
-                    private void handleZoom(MotionEvent event, Camera.Parameters params) {
-                        if (mCamera == null) {
-                            return;
                         }
-
-                        mCamera.cancelAutoFocus();
-
-                        int maxZoom = params.getMaxZoom();
-                        int zoom = params.getZoom();
-                        float newDist = getFingerSpacing(event);
-                        float distDifference = newDist - mDist;
-
-                        // avoid zoom jumps
-                        if(mDist == 0) {
-                            mDist = newDist;
-                            return;
-                        }
-
-                        int zoomDifference = 0;
-                        int zoomFactor = 10;
-                        int maximumZoomStep = 10;
-
-                        if (newDist > mDist) {
-                            //zoom in;
-                            zoomDifference = Math.min(Math.round(distDifference / zoomFactor), maximumZoomStep);
-                            zoom = Math.min(maxZoom, zoom + zoomDifference);
-                        } else if (newDist < mDist) {
-                            //zoom out
-                            zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
-                            zoom = Math.max(0, zoom + zoomDifference);
-                        }
-                        mDist = newDist;
-                        params.setZoom(zoom);
-                        mCamera.setParameters(params);
-                    }
+                    );
                 }
-            );
+
+                private float mDist = 0F;
+
+                private void handleZoom(MotionEvent event, Camera.Parameters params) {
+                    if (mCamera == null) {
+                        return;
+                    }
+
+                    mCamera.cancelAutoFocus();
+
+                    int maxZoom = params.getMaxZoom();
+                    int zoom = params.getZoom();
+                    float newDist = getFingerSpacing(event);
+                    float distDifference = newDist - mDist;
+
+                    // avoid zoom jumps
+                    if(mDist == 0) {
+                        mDist = newDist;
+                        return;
+                    }
+
+                    int zoomDifference = 0;
+                    int zoomFactor = 10;
+                    int maximumZoomStep = 10;
+
+                    if (newDist > mDist) {
+                        //zoom in;
+                        zoomDifference = Math.min(Math.round(distDifference / zoomFactor), maximumZoomStep);
+                        zoom = Math.min(maxZoom, zoom + zoomDifference);
+                    } else if (newDist < mDist) {
+                        //zoom out
+                        zoomDifference = Math.max(Math.round(distDifference / zoomFactor), -maximumZoomStep);
+                        zoom = Math.max(0, zoom + zoomDifference);
+                    }
+                    mDist = newDist;
+                    params.setZoom(zoom);
+                    mCamera.setParameters(params);
+                }
+            }
+        );
     }
 
     private void setDefaultCameraId() {
@@ -454,9 +467,10 @@ public class CameraActivity extends Fragment {
             getResources().getIdentifier("frame_container", "id", appResourcesPackage)
         );
 
-        final int previousOrientation = frameContainerLayout.getHeight() > frameContainerLayout.getWidth()
-            ? Configuration.ORIENTATION_PORTRAIT
-            : Configuration.ORIENTATION_LANDSCAPE;
+        final int previousOrientation =
+            frameContainerLayout.getHeight() > frameContainerLayout.getWidth()
+                ? Configuration.ORIENTATION_PORTRAIT
+                : Configuration.ORIENTATION_LANDSCAPE;
         // Checks if the orientation of the screen has changed
         if (newConfig.orientation != previousOrientation) {
             final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(
@@ -482,6 +496,45 @@ public class CameraActivity extends Fragment {
         return mCamera;
     }
 
+    /**
+     * Method to get the front camera id if the current camera is back and visa versa
+     *
+     * @return front or back camera id depending on the currently active camera
+     */
+    private int getNextCameraId() {
+        int nextCameraId = 0;
+
+        // Find the total number of cameras available
+        // NOTE: The getNumberOfCameras() method in Android's android.hardware.camera API returns the total
+        // number of cameras available on the device. The number might not be limited to just the front
+        // and back cameras because modern smartphones often come with more than two cameras.
+        // For example, devices might have:
+        // - a main (back) camera.
+        // - a wide-angle camera.
+        // - a telephoto camera.
+        // - a depth-sensing camera.
+        // - an ultrawide camera.
+        // - a macro camera.
+        // etc.
+        numberOfCameras = Camera.getNumberOfCameras();
+
+        int nextFacing =
+            cameraCurrentlyLocked == Camera.CameraInfo.CAMERA_FACING_BACK
+                ? Camera.CameraInfo.CAMERA_FACING_FRONT
+                : Camera.CameraInfo.CAMERA_FACING_BACK;
+
+        // Find the next ID of the camera to switch to (front if the current is back and visa versa)
+        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.getCameraInfo(i, cameraInfo);
+            if (cameraInfo.facing == nextFacing) {
+                nextCameraId = i;
+                break;
+            }
+        }
+        return nextCameraId;
+    }
+
     public void switchCamera() {
         // check for availability of multiple cameras
         if (numberOfCameras == 1) {
@@ -499,7 +552,7 @@ public class CameraActivity extends Fragment {
 
             Log.d(TAG, "cameraCurrentlyLocked := " + Integer.toString(cameraCurrentlyLocked));
             try {
-                cameraCurrentlyLocked = (cameraCurrentlyLocked + 1) % numberOfCameras;
+                cameraCurrentlyLocked = getNextCameraId();
                 Log.d(TAG, "cameraCurrentlyLocked new: " + cameraCurrentlyLocked);
             } catch (Exception exception) {
                 Log.d(TAG, exception.getMessage());
@@ -705,7 +758,7 @@ public class CameraActivity extends Fragment {
                     // check if this pictureSize closer to requested width and height
                     if (
                         Math.abs(width * height - supportedSize.width * supportedSize.height) <
-                        Math.abs(width * height - size.width * size.height)
+                            Math.abs(width * height - size.width * size.height)
                     ) {
                         size.width = supportedSize.width;
                         size.height = supportedSize.height;
@@ -775,9 +828,10 @@ public class CameraActivity extends Fragment {
                             bytes = rotateNV21(bytes, size.width, size.height, orientation);
                         }
                         // switch width/height when rotating 90/270 deg
-                        Rect rect = orientation == 90 || orientation == 270
-                            ? new Rect(0, 0, size.height, size.width)
-                            : new Rect(0, 0, size.width, size.height);
+                        Rect rect =
+                            orientation == 90 || orientation == 270
+                                ? new Rect(0, 0, size.height, size.width)
+                                : new Rect(0, 0, size.width, size.height);
                         YuvImage yuvImage = new YuvImage(bytes, parameters.getPreviewFormat(), rect.width(), rect.height(), null);
                         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                         yuvImage.compressToJpeg(rect, quality, byteArrayOutputStream);
@@ -1022,10 +1076,10 @@ public class CameraActivity extends Fragment {
             y = height - 100;
         }
         return new Rect(
-            Math.round((x - 100) * 2000 / width - 1000),
-            Math.round((y - 100) * 2000 / height - 1000),
-            Math.round((x + 100) * 2000 / width - 1000),
-            Math.round((y + 100) * 2000 / height - 1000)
+            Math.round(((x - 100) * 2000) / width - 1000),
+            Math.round(((y - 100) * 2000) / height - 1000),
+            Math.round(((x + 100) * 2000) / width - 1000),
+            Math.round(((y + 100) * 2000) / height - 1000)
         );
     }
 

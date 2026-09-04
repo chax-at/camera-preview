@@ -76,10 +76,10 @@ export type OnFocusSetCallback = (result: { x: number, y: number }
 ) => void;
 
 export interface CameraPreviewPlugin {
-  start(options: CameraPreviewOptions): Promise<Record<string,never>>;
-  startRecordVideo(options: CameraPreviewOptions): Promise<Record<string,never>>;
+  start(options: CameraPreviewOptions): Promise<void>;
+  startRecordVideo(options: CameraPreviewOptions): Promise<void>;
   stop(): Promise<void>;
-  stopRecordVideo(): Promise<Record<string,never>>;
+  stopRecordVideo(): Promise<void>;
   capture(options: CameraPreviewPictureOptions): Promise<{ value: string }>;
   captureSample(options: CameraSampleOptions): Promise<{ value: string }>;
   getSupportedPictureSizes(): Promise<{
@@ -91,8 +91,9 @@ export interface CameraPreviewPlugin {
   getFlashMode(): Promise<{ flashMode: CameraPreviewFlashMode|null }>;
   setFlashMode(options: { flashMode: CameraPreviewFlashMode }): Promise<void>;
   flip(): Promise<void>;
-  setOpacity(options: CameraOpacityOptions): Promise<Record<string,never>>;
   setPreviewDimensions(options: CameraPreviewPreviewDimensions): Promise<void>;
   /** unsubscribing callbacks is - and should be for new callbacks - automatically handled in stop() */
   subscribeToFocusSet(callback: OnFocusSetCallback | null): Promise<{result: { x: number, y: number }}>;
+  setOpacity(options: CameraOpacityOptions): Promise<void>;
+  isCameraStarted(): Promise<{ value: boolean }>;
 }
