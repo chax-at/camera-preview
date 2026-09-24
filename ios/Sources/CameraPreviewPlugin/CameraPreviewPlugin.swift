@@ -125,35 +125,13 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
             DispatchQueue.main.async {
                 if self.cameraController.captureSession?.isRunning ?? false {
                     call.reject("camera already started")
-                } else {
-                    self.cameraController.prepare(cameraPosition: self.cameraPosition, disableAudio: self.disableAudio) {error in
-                        if let error = error {
-                            print(error)
-                            call.reject(error.localizedDescription)
-                            return
-                        }
-                        let height = self.paddingBottom != nil ? self.height! - self.paddingBottom!: self.height!
-                        self.previewView = UIView(frame: CGRect(x: self.x ?? 0, y: self.y ?? 0, width: self.width!, height: height))
-                        self.webView?.isOpaque = false
-                        self.webView?.backgroundColor = UIColor.clear
-                        self.webView?.scrollView.backgroundColor = UIColor.clear
-                        self.webView?.superview?.addSubview(self.previewView)
-                        if self.toBack! {
-                            self.webView?.superview?.bringSubviewToFront(self.webView!)
-                        }
-                        try? self.cameraController.displayPreview(on: self.previewView)
-
-                        let frontView = self.toBack! ? self.webView : self.previewView
-                        self.cameraController.setupGestures(target: frontView ?? self.previewView, enableZoom: self.enableZoom!)
-
-                        if self.rotateWhenOrientationChanged == true {
-                            NotificationCenter.default.addObserver(self, selector: #selector(CameraPreview.rotated), name: UIDevice.orientationDidChangeNotification, object: nil)
-                        }
-
-                        self.cameraController.setOnFocusSetCallback(callback: self.onFocusSet)
-
-                        call.resolve()
-
+                    return
+                } 
+                self.cameraController.prepare(cameraPosition: self.cameraPosition, disableAudio: self.disableAudio) {error in
+                    if let error = error {
+                        print(error)
+                        call.reject(error.localizedDescription)
+                        return
                     }
                     guard let height = self.height, let width = self.width else {
                         call.reject("Invalid dimensions")
@@ -177,6 +155,8 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
                     if self.rotateWhenOrientationChanged == true {
                         NotificationCenter.default.addObserver(self, selector: #selector(CameraPreview.rotated), name: UIDevice.orientationDidChangeNotification, object: nil)
                     }
+
+                    self.cameraController.setOnFocusSetCallback(callback: self.onFocusSet)
 
                     call.resolve()
                 }
