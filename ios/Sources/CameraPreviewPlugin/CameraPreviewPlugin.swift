@@ -213,9 +213,12 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     @objc func capture(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
 
-            let quality: Int? = call.getInt("quality", 85)
+            let quality = call.getInt("quality", 85)
+            let compression = CGFloat(quality) / 100.0
+            // the longer side of the requested size is used as limit, so the result does not depend on the orientation
+            let maxPixelSize = max(call.getInt("width", 0), call.getInt("height", 0))
 
-            self.cameraController.captureImage { [weak self] (image, error) in
+            self.cameraController.captureImage { [weak self] (capturedImage, error) in
                 guard let self = self else { return }
                 
                 if let error = error {
@@ -223,16 +226,18 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
-                guard let image = image else {
+                guard let capturedImage = capturedImage else {
                     call.reject("Image capture failed: no data received")
                     return
                 }
+                let image = maxPixelSize > 0 ? capturedImage.scaledDown(maxPixelSize: CGFloat(maxPixelSize)) : capturedImage
+
                 let imageData: Data?
                 if self.cameraController.currentCameraPosition == .front {
                     let flippedImage = image.withHorizontallyFlippedOrientation()
-                    imageData = flippedImage.jpegData(compressionQuality: CGFloat(quality!/100))
+                    imageData = flippedImage.jpegData(compressionQuality: compression)
                 } else {
-                    imageData = image.jpegData(compressionQuality: CGFloat(quality!/100))
+                    imageData = image.jpegData(compressionQuality: compression)
                 }
 
                 if self.storeToFile == false {
@@ -441,6 +446,28 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
             } else {
                 call.resolve(["value": false])
             }
+        }
+    }
+}
+
+extension UIImage {
+    /**
+     * Scales the image down so that its longer side is at most maxPixelSize pixels. Smaller images are returned unchanged.
+     */
+    func scaledDown(maxPixelSize: CGFloat) -> UIImage {
+        let pixelWidth = self.size.width * self.scale
+        let pixelHeight = self.size.height * self.scale
+        let longerSide = max(pixelWidth, pixelHeight)
+        guard longerSide > maxPixelSize else { return self }
+
+        let factor = maxPixelSize / longerSide
+        let targetSize = CGSize(width: (pixelWidth * factor).rounded(), height: (pixelHeight * factor).rounded())
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            self.draw(in: CGRect(origin: .zero, size: targetSize))
         }
     }
 }
