@@ -38,6 +38,14 @@ class CameraController: NSObject {
     var zoomFactor: CGFloat = 1.0
 
     var onFocusSetCallback: ((CGPoint)->())?
+
+    // all AVCaptureSession (re)configuration and start/stop calls are serialized on this queue,
+    // because they are blocking and must not run on the main thread
+    let sessionQueue = DispatchQueue(label: "CameraPreview.session")
+    // decoding/rotating/scaling of captured photos
+    let photoProcessingQueue = DispatchQueue(label: "CameraPreview.photoProcessing", qos: .userInitiated)
+
+    var photoCaptureMaxPixelSize: Int?
 }
 
 extension CameraController {
@@ -109,38 +117,36 @@ extension CameraController {
             guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
 
             self.photoOutput = AVCapturePhotoOutput()
-            self.photoOutput!.setPreparedPhotoSettingsArray([AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])], completionHandler: nil)
-            self.photoOutput?.isHighResolutionCaptureEnabled = self.highResolutionOutput
             if captureSession.canAddOutput(self.photoOutput!) { captureSession.addOutput(self.photoOutput!) }
-            captureSession.startRunning()
+            // must be set after the output was added to the session and before the session is running,
+            // otherwise the whole capture pipeline gets reconfigured
+            self.photoOutput?.isHighResolutionCaptureEnabled = self.highResolutionOutput
         }
 
-        func configureDataOutput() throws {
-            guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
-
-            self.dataOutput = AVCaptureVideoDataOutput()
-            self.dataOutput?.videoSettings = [
-                (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
-            ]
-            self.dataOutput?.alwaysDiscardsLateVideoFrames = true
-            if captureSession.canAddOutput(self.dataOutput!) {
-                captureSession.addOutput(self.dataOutput!)
-            }
-
-            captureSession.commitConfiguration()
-
-            let queue = DispatchQueue(label: "DataOutput", attributes: [])
-            self.dataOutput?.setSampleBufferDelegate(self, queue: queue)
-        }
-
-        DispatchQueue(label: "prepare").async {
+        self.sessionQueue.async {
             do {
                 createCaptureSession()
-                try configureCaptureDevices()
-                try configureDeviceInputs()
-                try configurePhotoOutput()
-                try configureDataOutput()
-                // try configureVideoOutput()
+                guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
+
+                captureSession.beginConfiguration()
+                // 4:3 preview which matches the aspect ratio of the taken photos (the default .high preset is 16:9)
+                if captureSession.canSetSessionPreset(.photo) {
+                    captureSession.sessionPreset = .photo
+                }
+                do {
+                    try configureCaptureDevices()
+                    try configureDeviceInputs()
+                    try configurePhotoOutput()
+                } catch {
+                    captureSession.commitConfiguration()
+                    throw error
+                }
+                captureSession.commitConfiguration()
+
+                captureSession.startRunning()
+
+                // the video data output (only used by captureSample) is added lazily, because processing every frame is expensive
+                self.photoOutput?.setPreparedPhotoSettingsArray([self.createPhotoSettings()], completionHandler: nil)
             } catch {
                 DispatchQueue.main.async {
                     completionHandler(error)
@@ -162,7 +168,8 @@ extension CameraController {
         self.previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
 
         view.layer.insertSublayer(self.previewLayer!, at: 0)
-        self.previewLayer?.frame = view.frame
+        // the layer is positioned relative to the view, so it has to use the bounds (not the frame)
+        self.previewLayer?.frame = view.bounds
 
         updateVideoOrientation()
     }
@@ -269,18 +276,40 @@ extension CameraController {
         captureSession.commitConfiguration()
     }
 
-    func captureImage(completion: @escaping (UIImage?, Error?) -> Void) {
-        guard let captureSession = captureSession, captureSession.isRunning else { completion(nil, CameraControllerError.captureSessionIsMissing); return }
-        let settings = AVCapturePhotoSettings()
-
-        settings.flashMode = self.flashMode
+    func createPhotoSettings() -> AVCapturePhotoSettings {
+        // explicitly request JPEG, otherwise HEVC is used on newer devices, which would not match the prepared settings
+        // and would need to be decoded again
+        let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
         settings.isHighResolutionPhotoEnabled = self.highResolutionOutput
+        // skip the expensive multi frame fusion (Deep Fusion etc.), which causes a noticeable shutter lag
+        settings.photoQualityPrioritization = .speed
+        return settings
+    }
 
-        self.photoOutput?.capturePhoto(with: settings, delegate: self)
+    /**
+     * maxPixelSize: the maximum length of the longer side of the resulting image, nil for the full resolution
+     */
+    func captureImage(maxPixelSize: Int?, completion: @escaping (UIImage?, Error?) -> Void) {
+        assert(Thread.isMainThread) // updateVideoOrientation requires the main thread
+        guard let captureSession = captureSession, captureSession.isRunning, let photoOutput = self.photoOutput else {
+            completion(nil, CameraControllerError.captureSessionIsMissing)
+            return
+        }
+
+        // make sure the photo gets the current interface orientation, even if no rotation event was received
+        updateVideoOrientation()
+
+        let settings = createPhotoSettings()
+        settings.flashMode = photoOutput.supportedFlashModes.contains(self.flashMode) ? self.flashMode : .off
+
+        // has to be set before capturing, the delegate may be called before capturePhoto returns
         self.photoCaptureCompletionBlock = completion
+        self.photoCaptureMaxPixelSize = maxPixelSize
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
     func captureSample(completion: @escaping (UIImage?, Error?) -> Void) {
+        assert(Thread.isMainThread) // updateVideoOrientation requires the main thread
         guard let captureSession = captureSession,
               captureSession.isRunning else {
             completion(nil, CameraControllerError.captureSessionIsMissing)
@@ -288,6 +317,30 @@ extension CameraController {
         }
 
         self.sampleBufferCaptureCompletionBlock = completion
+
+        if self.dataOutput != nil {
+            return
+        }
+
+        let dataOutput = AVCaptureVideoDataOutput()
+        dataOutput.videoSettings = [
+            (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
+        ]
+        dataOutput.alwaysDiscardsLateVideoFrames = true
+        dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "DataOutput", attributes: []))
+        self.dataOutput = dataOutput
+
+        self.sessionQueue.async {
+            captureSession.beginConfiguration()
+            if captureSession.canAddOutput(dataOutput) {
+                captureSession.addOutput(dataOutput)
+            }
+            captureSession.commitConfiguration()
+
+            DispatchQueue.main.async {
+                self.updateVideoOrientation()
+            }
+        }
     }
 
     func getSupportedFlashModes() throws -> [String] {
@@ -424,8 +477,14 @@ extension CameraController {
         return nil;
     }
 
-    func setPreviewDimensions(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) throws {
-        self.previewLayer?.frame = CGRect(x: x, y: y, width: width, height: height)
+    func updatePreviewLayerFrame(view: UIView) {
+        assert(Thread.isMainThread)
+
+        // no implicit animation, otherwise the preview lags behind the webview when rotating
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        self.previewLayer?.frame = view.bounds
+        CATransaction.commit()
     }
 
     func captureVideo(completion: @escaping (URL?, Error?) -> Void) {
@@ -554,11 +613,52 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
             return
         }
 
-        if let data = photo.fileDataRepresentation(), let image = UIImage(data: data) {
-            self.photoCaptureCompletionBlock?(image.fixedOrientation(), nil)
-        } else {
-            self.photoCaptureCompletionBlock?(nil, CameraControllerError.unknown)
+        guard let completion = self.photoCaptureCompletionBlock else { return }
+        self.photoCaptureCompletionBlock = nil
+        let maxPixelSize = self.photoCaptureMaxPixelSize
+
+        guard let data = photo.fileDataRepresentation() else {
+            completion(nil, CameraControllerError.unknown)
+            return
         }
+
+        self.photoProcessingQueue.async {
+            if let image = CameraController.createOrientedImage(data: data, maxPixelSize: maxPixelSize) {
+                completion(image, nil)
+            } else {
+                completion(nil, CameraControllerError.unknown)
+            }
+        }
+    }
+
+    /**
+     * Decodes the image, applies the EXIF orientation to the pixels and scales it down (if necessary) in a single step.
+     * This is a lot faster than decoding it into an UIImage and redrawing it in a CGContext.
+     */
+    static func createOrientedImage(data: Data, maxPixelSize: Int?) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let sourceWidth = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
+        let sourceHeight = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
+        let sourceMaxPixelSize = max(sourceWidth, sourceHeight)
+
+        var targetMaxPixelSize = sourceMaxPixelSize
+        if let maxPixelSize = maxPixelSize, maxPixelSize > 0, sourceMaxPixelSize > 0 {
+            targetMaxPixelSize = min(maxPixelSize, sourceMaxPixelSize)
+        }
+
+        var options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        if targetMaxPixelSize > 0 {
+            options[kCGImageSourceThumbnailMaxPixelSize] = targetMaxPixelSize
+        }
+
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
     }
 }
 

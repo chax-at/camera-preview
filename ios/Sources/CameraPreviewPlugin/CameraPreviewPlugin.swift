@@ -46,6 +46,8 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     var highResolutionOutput: Bool = false
     var disableAudio: Bool = false
     var onFocusSetCallbackId: String? = nil
+    // whether the interface was in landscape when x/y/width/height were passed in
+    var dimensionsAreLandscape: Bool?
 
     // Helper to get the current interface orientation via connectedScenes (iOS 15+)
     private func getInterfaceOrientation() -> UIInterfaceOrientation {
@@ -55,6 +57,25 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func rotated() {
+        // the device orientation notification is posted before the interface has been rotated,
+        // so the interface orientation is not updated yet at this point
+        DispatchQueue.main.async {
+            self.layoutPreview()
+
+            if let transitionCoordinator = self.bridge?.viewController?.transitionCoordinator {
+                transitionCoordinator.animate(alongsideTransition: nil) { _ in
+                    self.layoutPreview()
+                }
+            }
+        }
+    }
+
+    /**
+     * Applies the stored dimensions and the current interface orientation to the preview and the capture outputs.
+     */
+    private func layoutPreview() {
+        assert(Thread.isMainThread)
+
         guard let previewView = self.previewView,
               let x = self.x,
               let y = self.y,
@@ -64,18 +85,16 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
         }
 
         let adjustedHeight = self.paddingBottom != nil ? height - self.paddingBottom! : height
-        let orientation = getInterfaceOrientation()
+        var frame = CGRect(x: x, y: y, width: width, height: adjustedHeight)
 
-        if orientation.isLandscape {
-            previewView.frame = CGRect(x: y, y: x, width: max(adjustedHeight, width), height: min(adjustedHeight, width))
-            self.cameraController.previewLayer?.frame = previewView.frame
+        // the dimensions were given for the other orientation (and not updated yet), so rotate them
+        let isLandscape = getInterfaceOrientation().isLandscape
+        if self.rotateWhenOrientationChanged == true, let dimensionsAreLandscape = self.dimensionsAreLandscape, dimensionsAreLandscape != isLandscape {
+            frame = CGRect(x: y, y: x, width: adjustedHeight, height: width)
         }
 
-        if orientation.isPortrait {
-            previewView.frame = CGRect(x: x, y: y, width: min(adjustedHeight, width), height: max(adjustedHeight, width))
-            self.cameraController.previewLayer?.frame = previewView.frame
-        }
-
+        previewView.frame = frame
+        cameraController.updatePreviewLayerFrame(view: previewView)
         cameraController.updateVideoOrientation()
     }
     
@@ -103,8 +122,9 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
         } else {
             self.height = UIScreen.main.bounds.size.height
         }
-        self.x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!)/UIScreen.main.scale: 0
-        self.y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!)/UIScreen.main.scale: 0
+        // all dimensions are in points (which equal css pixels in the webview)
+        self.x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!) : 0
+        self.y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!) : 0
         if call.getInt("paddingBottom") != nil {
             self.paddingBottom = CGFloat(call.getInt("paddingBottom")!)
         }
@@ -139,6 +159,7 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
                     }
 
                     let adjustedHeight = self.paddingBottom != nil ? height - self.paddingBottom! : height
+                    self.dimensionsAreLandscape = self.getInterfaceOrientation().isLandscape
                     self.previewView = UIView(frame: CGRect(x: self.x ?? 0, y: self.y ?? 0, width: width, height: adjustedHeight))
                     self.webView?.isOpaque = false
                     self.webView?.backgroundColor = UIColor.clear
@@ -165,36 +186,48 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func flip(_ call: CAPPluginCall) {
-        do {
-            try self.cameraController.switchCameras()
-            call.resolve()
-        } catch {
-            call.reject("failed to flip camera")
+        self.cameraController.sessionQueue.async {
+            do {
+                try self.cameraController.switchCameras()
+            } catch {
+                call.reject("failed to flip camera")
+                return
+            }
+
+            DispatchQueue.main.async {
+                // the connections of the new input start with the default orientation
+                self.cameraController.updateVideoOrientation()
+                call.resolve()
+            }
         }
     }
 
     @objc func stop(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            if self.cameraController.captureSession?.isRunning ?? false {
-                self.cameraController.captureSession?.stopRunning()
-
-                // Remove the orientation observer to prevent crashes
-                if self.rotateWhenOrientationChanged == true {
-                    NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
-                }
-
-                if let previewView = self.previewView {
-                    previewView.removeFromSuperview()
-                    self.previewView = nil
-                }
-                self.webView?.isOpaque = true
-                if self.onFocusSetCallbackId != nil {
-                    self.bridge?.releaseCall(withID: self.onFocusSetCallbackId!)
-                    self.onFocusSetCallbackId = nil
-                }
-                call.resolve()
-            } else {
+            guard let captureSession = self.cameraController.captureSession, captureSession.isRunning else {
                 call.reject("camera already stopped")
+                return
+            }
+
+            // Remove the orientation observer to prevent crashes
+            if self.rotateWhenOrientationChanged == true {
+                NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            }
+
+            if let previewView = self.previewView {
+                previewView.removeFromSuperview()
+                self.previewView = nil
+            }
+            self.webView?.isOpaque = true
+            if self.onFocusSetCallbackId != nil {
+                self.bridge?.releaseCall(withID: self.onFocusSetCallbackId!)
+                self.onFocusSetCallbackId = nil
+            }
+
+            // stopRunning is blocking and takes a while, so it must not block the main thread
+            self.cameraController.sessionQueue.async {
+                captureSession.stopRunning()
+                call.resolve()
             }
         }
     }
@@ -213,9 +246,12 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     @objc func capture(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
 
-            let quality: Int? = call.getInt("quality", 85)
+            let quality = call.getInt("quality", 85)
+            let compression = CGFloat(quality) / 100.0
+            // the longer side of the requested size is used as limit, so the result does not depend on the orientation
+            let maxPixelSize = max(call.getInt("width", 0), call.getInt("height", 0))
 
-            self.cameraController.captureImage { [weak self] (image, error) in
+            self.cameraController.captureImage(maxPixelSize: maxPixelSize > 0 ? maxPixelSize : nil) { [weak self] (image, error) in
                 guard let self = self else { return }
                 
                 if let error = error {
@@ -230,9 +266,9 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
                 let imageData: Data?
                 if self.cameraController.currentCameraPosition == .front {
                     let flippedImage = image.withHorizontallyFlippedOrientation()
-                    imageData = flippedImage.jpegData(compressionQuality: CGFloat(quality!/100))
+                    imageData = flippedImage.jpegData(compressionQuality: compression)
                 } else {
-                    imageData = image.jpegData(compressionQuality: CGFloat(quality!/100))
+                    imageData = image.jpegData(compressionQuality: compression)
                 }
 
                 if self.storeToFile == false {
@@ -376,20 +412,23 @@ public class CameraPreview: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func setPreviewDimensions(_ call: CAPPluginCall) {
-        let x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!)/UIScreen.main.scale : 0
-        let y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!)/UIScreen.main.scale : 0
+        // all dimensions are in points (which equal css pixels in the webview)
+        let x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!) : 0
+        let y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!) : 0
         let width = call.getInt("width") != nil ? CGFloat(call.getInt("width")!) : UIScreen.main.bounds.size.width
         let height = call.getInt("height") != nil ? CGFloat(call.getInt("height")!) : UIScreen.main.bounds.size.height
-        do {
-            try self.cameraController.setPreviewDimensions(x: x, y: y, width: width, height: height)
+
+        // plugin methods are not called on the main thread, but UIKit/CALayer must only be accessed from there
+        DispatchQueue.main.async {
             self.x = x
             self.y = y
             self.width = width
             self.height = height
             self.paddingBottom = call.getInt("paddingBottom") != nil ? CGFloat(call.getInt("paddingBottom")!) : 0
+            self.dimensionsAreLandscape = self.getInterfaceOrientation().isLandscape
+
+            self.layoutPreview()
             call.resolve()
-        } catch {
-            call.reject("failed to set preview dimensions")
         }
     }
 
